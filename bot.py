@@ -4,18 +4,23 @@ import telebot
 import google.generativeai as genai
 from collections import Counter
 
-# 1. Configuración de API Keys (Koyeb Environment Variables)
+# --- INICIO DE CONFIGURACIÓN ---
 TOKEN = os.getenv('TELEGRAM_TOKEN')
 GEMINI_KEY = os.getenv('GEMINI_API_KEY')
 
+# Confirmación en Logs
+print("--- INICIANDO EL BOT DE @Beto7h ---")
+
+if not TOKEN or not GEMINI_KEY:
+    print("❌ ERROR: Faltan las variables de entorno TELEGRAM_TOKEN o GEMINI_API_KEY")
+
 genai.configure(api_key=GEMINI_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
-
 bot = telebot.TeleBot(TOKEN)
+
 chat_data = {}
 MAX_MENSAJES = 500
 
-# 2. Diccionario de Personalidades (Incluye el nuevo modo Picoso)
 MODOS = {
     "hater": "Eres un crítico sarcástico. Resume el chat burlándote de los temas y usuarios. Usa 🙄, 💅.",
     "caos": "Eres un agente del caos. Resume con 𝓁ℯ𝓉𝓇𝒶𝓈 𝓇𝒶𝓇𝒶𝓈 y muchos emojis 🔥. ¡Sé ruidoso!",
@@ -26,15 +31,14 @@ MODOS = {
     "picoso": "Eres el rey del 'salseo'. Tu objetivo es echarle leña al fuego. Resume señalando contradicciones y momentos incómodos. Sé provocador y divertido. Emojis: 🌶️, 🔥, 🍿."
 }
 
-# 3. Lista extendida de 20 mensajes de bienvenida
 MENSAJES_BIENVENIDA = [
     "¿Quién me despertó? Más les vale que el chisme esté bueno... 🙄",
     "He llegado para juzgar sus conversaciones. No esperen piedad. 💅",
-    "Analizando neuronas... Error 404: No se encontraron muchas en este chat. 🔥",
+    "Analizando neuronas... Error 404: No se encontraron muchas aquí. 🔥",
     "¡Hola! Soy el que lee todo lo que escriben mientras ustedes no miran. 👁️",
-    "¿Otro grupo más? Mi procesador va a explotar con tanta tontería. 🔌",
-    "Prepárense, que hoy vengo con la lengua (o los circuitos) bien larga. ☕",
+    "Prepárense, hoy vengo con los circuitos bien afilados. ☕",
     "¿Buscaban un resumen o una humillación pública? Yo hago ambas. 🤖",
+    "¿Otro grupo más? Mi procesador va a explotar con tanta tontería. 🔌",
     "Pasaba por aquí y olí a drama... ¿Me cuentan o lo leo yo solo? 🍿",
     "Soy como el FBI, pero con más sarcasmo y mejores resúmenes. 🕵️‍♂️",
     "¿En serio esto es lo mejor que pueden escribir? Qué decepción... 🥱",
@@ -50,43 +54,33 @@ MENSAJES_BIENVENIDA = [
     "¡Llegó el jefe! Despejen el área y suelten el veneno. 🐍"
 ]
 
-# Comando de Inicio / Ayuda con mensaje random
 @bot.message_handler(commands=['start', 'ayuda'])
 def send_help(message):
-    bienvenida_random = random.choice(MENSAJES_BIENVENIDA)
-    
-    texto = f"🤖 **{bienvenida_random}**\n\n"
-    texto += "Usa `/resumen [modo]` para analizar el grupo:\n\n"
-    texto += "• `hater` | `caos` | `chisme` | `noticiero`\n"
-    texto += "• `drama` | `zen` | `picoso` 🌶️\n\n"
-    texto += "_Nota: Si no eliges modo, usaré 'hater' por defecto._"
-    
+    print(f"Comando recibido: {message.text} de {message.from_user.first_name}")
+    bienvenida = random.choice(MENSAJES_BIENVENIDA)
+    texto = f"🤖 **{bienvenida}**\n\nUsa `/resumen [modo]` para analizar el grupo.\n\nModos: `hater`, `caos`, `chisme`, `noticiero`, `drama`, `zen`, `picoso`."
     bot.reply_to(message, texto, parse_mode="Markdown")
 
-# Guardar mensajes
 @bot.message_handler(func=lambda message: True)
 def track_messages(message):
     if message.text and not message.text.startswith('/'):
         cid = message.chat.id
         if cid not in chat_data: chat_data[cid] = []
-        
         user = f"@{message.from_user.username}" if message.from_user.username else message.from_user.first_name
         chat_data[cid].append(f"{user}: {message.text}")
-        
         if len(chat_data[cid]) > MAX_MENSAJES: chat_data[cid].pop(0)
 
-# Generar el Resumen
 @bot.message_handler(commands=['resumen'])
 def make_summary(message):
+    print(f"Comando resumen recibido en chat: {message.chat.id}")
     cid = message.chat.id
-    
-    if cid not in chat_data or len(chat_data[cid]) < 5:
-        bot.reply_to(message, "No hay suficiente chisme acumulado. Hablen más. 🥱")
+    if cid not in chat_data or len(chat_data[cid]) < 3:
+        bot.reply_to(message, "Hablen un poco más para que tenga material. 🥱")
         return
 
     nombres_en_chat = [line.split(':')[0] for line in chat_data[cid]]
     conteo = Counter(nombres_en_chat)
-    top_usuarios = ", ".join([f"{u} ({c} msjs)" for u, c in conteo.most_common(5)])
+    top_usuarios = ", ".join([f"{u} ({c})" for u, c in conteo.most_common(5)])
     lista_para_citar = ", ".join(list(set(nombres_en_chat)))
 
     args = message.text.split()
@@ -97,18 +91,13 @@ def make_summary(message):
     historial_completo = "\n".join(chat_data[cid])
 
     try:
-        full_prompt = (
-            f"{prompt_personalidad}\n\n"
-            f"DATOS: Los más activos: {top_usuarios}.\n"
-            f"CITAR A: {lista_para_citar}.\n"
-            f"INSTRUCCIÓN: Resume detalladamente citando usernames al azar para darles protagonismo o quemarlos. Responde en español.\n\n"
-            f"CHAT:\n{historial_completo}"
-        )
-        
+        full_prompt = f"{prompt_personalidad}\n\nActivos: {top_usuarios}.\nCitar: {lista_para_citar}.\n\nCHAT:\n{historial_completo}"
         response = model.generate_content(full_prompt)
         bot.reply_to(message, response.text, parse_mode="Markdown")
-        
     except Exception as e:
-        bot.reply_to(message, "Mi cerebro de silicio no pudo con tanto drama. Intenten de nuevo.")
+        print(f"Error en Gemini: {e}")
+        bot.reply_to(message, "Error al generar resumen.")
 
-bot.infinity_polling()
+# Cambio importante aquí para Koyeb
+print("Bot listo y escuchando...")
+bot.polling(none_stop=True, interval=0, timeout=20)
