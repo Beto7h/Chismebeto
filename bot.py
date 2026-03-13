@@ -14,16 +14,35 @@ client = Groq(api_key=GROQ_KEY)
 bot = telebot.TeleBot(TOKEN)
 
 chat_data = {}
-MAX_MENSAJES = 500
+MAX_MENSAJES = 500 
+
+# --- LISTA DE FRASES DE BIENVENIDA ---
+FRASES_BIENVENIDA = [
+    "¡Hola! He llegado para poner orden a este caos. 💅",
+    "¿Alguien dijo chisme? Ya estoy aquí para contarlo todo. ☕",
+    "¡Llegó el que faltaba! Vamos a ver qué tanto han hablado. 🤖",
+    "Prepárense, que vengo con la lengua afilada y el resumen listo. 🔥",
+    "¡Hola, hola! Menudo desorden tienen aquí, por suerte ya llegué. ✨",
+    "¿Mucho texto? No se preocupen, yo les traigo el salseo resumido. 📖",
+    "He vuelto. ¿De qué me he perdido en este nido de chismes? 🤫",
+    "¡Ayuda en camino! Aunque lo que ustedes necesitan es terapia por tanto chisme. 🙄",
+    "¿Perdido en el salseo? Aquí tienes la guía de supervivencia. 🚩",
+    "¡Reportándose el agente del chisme! ¿En qué puedo servirte? 🫡",
+    "Pasaba por aquí y olí un salseo de los buenos... ¡Cuenten conmigo! 👃✨",
+    "¡Llegó! Menos mal, porque este chat ya parecía un laberinto sin salida. 🌀",
+    "¿Me extrañaron? No respondan, ya sé que sin mí no entienden nada. 😎",
+    "¡Alto ahí! Dejen de escribir un segundo y miren lo que puedo hacer. 🛑🤖",
+    "Vine a leer lo que ustedes no quieren leer. ¡A sus órdenes! 🫡📜"
+]
 
 MODOS_CONFIG = {
     "hater": {"prompt": "Crítico sarcástico y amargado. Describe el 'Estado del chat' con desprecio.", "anuncio": "✨ ᴍᴏᴅᴏ ʜᴀᴛᴇʀ ✨"},
     "picoso": {"prompt": "Rey del salseo y peleas. Describe el 'Estado del chat' como un escándalo.", "anuncio": "🌶️ 𝕸𝖔𝖉𝖔 𝕻𝖎𝖈𝖔𝖘𝖔 🌶️"},
     "chisme": {"prompt": "Vecina chismosa de barrio. Describe el 'Estado del chat' como un rumor de pasillo.", "anuncio": "☕ 𝕸𝖔𝖉𝖔 𝕮𝖍𝖎𝖘𝖒𝖊 🤫"},
-    "noticiero": {"prompt": "Reportero de noticias dramáticas. Describe el 'Estado del chat' como un informe civil.", "anuncio": "🚨 𝑼𝑳𝑻𝑰𝑴𝑨 𝑯𝑶𝑹𝑨 🚨"},
-    "drama": {"prompt": "Escritor de telenovelas trágicas. Describe el 'Estado del chat' como una tragedia.", "anuncio": "🎭 𝕸𝖔𝖉𝖔 𝕯𝖗𝖆𝖒𝖆 🎭"},
-    "zen": {"prompt": "Guía espiritual y relajado. Describe el 'Estado del chat' como flujo de energía.", "anuncio": "🧘 𝑴𝒐𝒅𝒐 𝒁𝒆𝒏 🧘"},
-    "caos": {"prompt": "Agente del caos total. Describe el 'Estado del chat' como un colapso mental.", "anuncio": "🌀 𝑴𝑶𝑫𝑶 𝑪𝑨𝑶𝑺 🌀"}
+    "noticiero": {"prompt": "Reportero de noticias dramáticas. Describe el 'Estado del chat' como un informe civil urgente.", "anuncio": "🚨 𝑼𝑳𝑻𝑰𝑴𝑨 𝑯𝑶𝑹𝑨 🚨"},
+    "drama": {"prompt": "Escritor de telenovelas trágicas. Describe el 'Estado del chat' como una tragedia épica.", "anuncio": "🎭 𝕸𝖔𝖉𝖔 𝕯𝖗𝖆𝖒𝖆 🎭"},
+    "zen": {"prompt": "Guía espiritual y relajado. Describe el 'Estado del chat' como flujo de energía cósmica.", "anuncio": "🧘 𝑴𝒐𝒅𝒐 𝒁𝒆𝒏 🧘"},
+    "caos": {"prompt": "Agente del caos total. Describe el 'Estado del chat' como un colapso mental colectivo.", "anuncio": "🌀 𝑴𝑶𝑫𝑶 𝑪𝑨𝑶𝑺 🌀"}
 }
 
 # --- FUNCIONES DE APOYO ---
@@ -39,10 +58,16 @@ def el_bot_es_admin(chat_id):
 def obtener_ranking(cid):
     if cid not in chat_data or not chat_data[cid]:
         return ""
-    usuarios = [msg.split(' (')[0] for msg in chat_data[cid]]
-    conteo = Counter(usuarios)
+    nombres_reales = []
+    for msg in chat_data[cid]:
+        try:
+            nombre = msg.split(' (')[1].split('):')[0]
+            nombres_reales.append(nombre)
+        except:
+            continue
+    if not nombres_reales: return ""
+    conteo = Counter(nombres_reales)
     mas_activo, num_mensajes = conteo.most_common(1)[0]
-    
     ranking_msg = f"\n\n🏆 *RANKING DEL CHISME:*\n"
     ranking_msg += f"👑 *El más activo:* {mas_activo} ({num_mensajes} mensajes)\n"
     ranking_msg += f"🔥 _Analizando los últimos {len(chat_data[cid])} mensajes..._\n"
@@ -52,23 +77,20 @@ def obtener_ranking(cid):
 
 @bot.message_handler(commands=['start', 'ayuda'])
 def send_help(message):
-    saludo = "¡Hola! He llegado para poner orden a este caos. 💅"
-    # Asegúrate de que esta línea tenga la 'f' al principio
-    msg = f"✨ *{saludo}* ✨\n━━━━━━━━━━━━━━━━━━\n"
+    saludo_aleatorio = random.choice(FRASES_BIENVENIDA)
+    
+    msg = f"✨ *{saludo_aleatorio}* ✨\n━━━━━━━━━━━━━━━━━━\n"
     msg += "Soy *Don Chismoso*, la IA que resume el salseo de tus grupos. 🤖\n\n"
-    
-    # Aquí es donde se corrige para que muestre el número 500
     msg += f"📊 *CAPACIDAD:* Leo hasta *{MAX_MENSAJES} mensajes*. ⏳\n\n"
-    
     msg += "📌 *COMANDOS DISPONIBLES:*\n"
-    msg += "• `/chisme` ➔ Resumen tipo vecina criticona. ☕\n"
-    msg += "• `/hater` ➔ Resumen tóxico y sarcástico. 🙄\n"
+    msg += "• `/chisme` ➔ Estilo vecina criticona. ☕\n"
+    msg += "• `/hater` ➔ Estilo tóxico y sarcástico. 🙄\n"
     msg += "• `/picoso` ➔ Busca peleas e indirectas. 🌶️\n"
-    msg += "• `/noticiero` ➔ Reporte dramático de última hora. 🚨\n"
-    msg += "• `/drama` ➔ Como si fuera una telenovela trágica. 🎭\n"
-    msg += "• `/zen` ➔ Resumen pacífico y espiritual. 🧘\n"
-    msg += "• `/caos` ➔ Una mezcla sin sentido y divertida. 🌀\n"
-    msg += "• `/resumen` ➔ Elijo un modo al azar para ti. 🎲\n\n"
+    msg += "• `/noticiero` ➔ Reporte dramático urgente. 🚨\n"
+    msg += "• `/drama` ➔ Telenovela trágica. 🎭\n"
+    msg += "• `/zen` ➔ Paz y armonía espiritual. 🧘\n"
+    msg += "• `/caos` ➔ Mezcla sin sentido. 🌀\n"
+    msg += "• `/resumen` ➔ Modo sorpresa (azar). 🎲\n\n"
     msg += "━━━━━━━━━━━━━━━━━━\n"
     msg += "💡 *REQUISITOS:* Ser *Admin* y grupo *Autorizado* ✅\n\n"
     msg += "👤 *Desarrollador:* @Beto7h ✨"
@@ -77,11 +99,9 @@ def send_help(message):
 @bot.message_handler(commands=['resumen', 'hater', 'picoso', 'chisme', 'noticiero', 'drama', 'zen', 'caos'])
 def cmd_resumen(message):
     cid = message.chat.id
-
     if GRUPOS_AUTORIZADOS and cid not in GRUPOS_AUTORIZADOS:
         bot.reply_to(message, "⚠️ *FUNCIÓN BLOQUEADA* ⚠️\nContacta a @Beto7h ✨", parse_mode="Markdown")
         return
-
     if not el_bot_es_admin(cid):
         bot.reply_to(message, "⚠️ *ERROR:* Necesito ser *Admin*. 👷‍♂️⚙️")
         return
@@ -103,21 +123,20 @@ def cmd_resumen(message):
             messages=[
                 {"role": "system", "content": (
                     f"Eres un experto resumidor con estilo {config['prompt']}. "
-                    "REGLAS OBLIGATORIAS:\n"
+                    "REGLAS DE FORMATO:\n"
                     "1. Usa UN SOLO asterisco (*) para resaltar nombres y frases.\n"
-                    "2. PROHIBIDO usar dobles asteriscos (**).\n"
-                    "3. Escribe en VARIOS PÁRRAFOS cortos. No amontones todo el texto.\n"
-                    "4. Si hay varios temas de conversación, sepáralos con puntos de lista o saltos de línea.\n"
-                    "5. Empieza con '📌 *Estado del chat:*' seguido de una descripción resaltada con (*).\n"
-                    "6. Usa nombres reales y muchos emojis."
+                    "2. PROHIBIDO usar (**).\n"
+                    "3. Escribe en PÁRRAFOS SEPARADOS y cortos.\n"
+                    "4. Usa solo nombres reales.\n"
+                    "5. La primera línea debe ser '📌 *Estado del chat:*' seguida de una descripción CREATIVA, resaltada con (*).\n"
+                    "6. Usa muchos emojis."
                 )},
-                {"role": "user", "content": f"Resume este historial separando los temas importantes:\n{historial}"}
+                {"role": "user", "content": f"Resume este historial:\n{historial}"}
             ],
         )
         respuesta = completion.choices[0].message.content
         ranking = obtener_ranking(cid)
         firma = f"\n\n_— Generado por @donchismebot 🤖 | Desarrollado por @Beto7h ✨_"
-        
         bot.reply_to(message, f"{config['anuncio']}\n\n{respuesta}{ranking}{firma}", parse_mode="Markdown")
     except Exception:
         bot.reply_to(message, "¡El chisme explotó! ⚠️")
@@ -128,11 +147,9 @@ def track_messages(message):
         if message.text and not message.text.startswith('/'):
             cid = message.chat.id
             if cid not in chat_data: chat_data[cid] = []
-            
             username = f"@{message.from_user.username}" if message.from_user.username else "SinUser"
             nombre = message.from_user.first_name
             chat_data[cid].append(f"{username} ({nombre}): {message.text}")
-            
             if len(chat_data[cid]) > MAX_MENSAJES:
                 chat_data[cid].pop(0)
 
