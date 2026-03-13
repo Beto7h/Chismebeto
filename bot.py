@@ -7,7 +7,6 @@ from collections import Counter
 # --- CONFIGURACIÓN ---
 TOKEN = os.getenv('TELEGRAM_TOKEN')
 GROQ_KEY = os.getenv('GROQ_API_KEY')
-# IDs de grupos VIP en Koyeb separados por comas (Ej: -100123,-100456)
 AUTORIZADOS_RAW = os.getenv('GRUPOS_AUTORIZADOS', '')
 GRUPOS_AUTORIZADOS = [int(i.strip()) for i in AUTORIZADOS_RAW.split(',') if i.strip()]
 
@@ -40,7 +39,6 @@ def el_bot_es_admin(chat_id):
 def obtener_ranking(cid):
     if cid not in chat_data or not chat_data[cid]:
         return ""
-    # Extraemos el @username (que está antes del paréntesis)
     usuarios = [msg.split(' (')[0] for msg in chat_data[cid]]
     conteo = Counter(usuarios)
     mas_activo, num_mensajes = conteo.most_common(1)[0]
@@ -58,7 +56,7 @@ def send_help(message):
     msg = f"✨ **{saludo}** ✨\n━━━━━━━━━━━━━━━━━━\n"
     msg += "Soy **Don Chismoso**, la IA diseñada para analizar y resumir tus grupos con diferentes personalidades. 🤖\n\n"
     msg += "📊 **CAPACIDAD DE LECTURA:**\n"
-    msg += f"Puedo leer hasta **{MAX_MENSA_JES} mensajes como máximo**. ¡Si el chisme es largo, solo recordaré lo más reciente! 🧠⏳\n\n"
+    msg += f"Puedo leer hasta **{MAX_MENSAJES} mensajes como máximo**. ¡Si el chisme es largo, solo recordaré lo más reciente! 🧠⏳\n\n"
     msg += "📌 **COMANDOS Y FUNCIONES:**\n"
     msg += "• `/hater`, `/picoso`, `/chisme`, `/noticiero`, `/drama`, `/zen`, `/resumen`\n\n"
     msg += "━━━━━━━━━━━━━━━━━━\n"
@@ -69,7 +67,6 @@ def send_help(message):
 @bot.message_handler(commands=['resumen', 'hater', 'picoso', 'chisme', 'noticiero', 'drama', 'zen', 'caos'])
 def cmd_resumen(message):
     cid = message.chat.id
-
     if GRUPOS_AUTORIZADOS and cid not in GRUPOS_AUTORIZADOS:
         bot.reply_to(message, "⚠️ **FUNCIÓN BLOQUEADA** ⚠️\n\nContacta al creador: @Beto7h ✨", parse_mode="Markdown")
         return
@@ -100,7 +97,6 @@ def cmd_resumen(message):
                     "2. Usa *cursiva* (un asterisco) para sarcasmo o detalles.\n"
                     "3. NO uses @usernames en el resumen, usa solo el nombre real que verás entre paréntesis.\n"
                     "4. Empieza SIEMPRE con una sección llamada '📌 **Estado del chat:**' seguida de una descripción escrita COMPLETAMENTE EN NEGRITA.\n"
-                    "Ejemplo: 📌 **Estado del chat: ¡Esto es un caos absoluto y todos están locos!**\n"
                     "5. Usa MUCHOS emojis y escribe en español coloquial."
                 )},
                 {"role": "user", "content": f"Resume este historial de chat:\n{historial}"}
@@ -109,9 +105,7 @@ def cmd_resumen(message):
         respuesta = completion.choices[0].message.content
         ranking = obtener_ranking(cid)
         firma = f"\n\n_— Generado por @donchismebot 🤖 | Desarrollado por @Beto7h ✨_"
-        
         bot.reply_to(message, f"{config['anuncio']}\n\n{respuesta}{ranking}{firma}", parse_mode="Markdown")
-        
     except Exception as e:
         bot.reply_to(message, "¡El chisme explotó! Intenta de nuevo más tarde. ⚠️")
 
@@ -121,14 +115,14 @@ def track_messages(message):
         if message.text and not message.text.startswith('/'):
             cid = message.chat.id
             if cid not in chat_data: chat_data[cid] = []
-            
             username = f"@{message.from_user.username}" if message.from_user.username else "SinUser"
             nombre = message.from_user.first_name
-            
             chat_data[cid].append(f"{username} ({nombre}): {message.text}")
-            
             if len(chat_data[cid]) > MAX_MENSAJES:
                 chat_data[cid].pop(0)
 
+# Para evitar conflictos, limpiamos cualquier sesión previa
 bot.remove_webhook()
+bot.stop_polling()
+# Iniciamos el bot
 bot.polling(none_stop=True)
