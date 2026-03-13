@@ -103,14 +103,15 @@ def cmd_resumen(message):
             messages=[
                 {"role": "system", "content": (
                     f"Eres un experto resumidor con estilo {config['prompt']}. "
-                    "REGLAS:\n"
+                    "REGLAS OBLIGATORIAS:\n"
                     "1. Usa UN SOLO asterisco (*) para resaltar nombres y frases.\n"
-                    "2. PROHIBIDO usar (**).\n"
-                    "3. Usa solo nombres reales (están entre paréntesis).\n"
-                    "4. Empieza con '📌 *Estado del chat:*' seguido de una descripción resaltada con (*).\n"
-                    "5. Muchos emojis y español coloquial."
+                    "2. PROHIBIDO usar dobles asteriscos (**).\n"
+                    "3. Escribe en VARIOS PÁRRAFOS cortos. No amontones todo el texto.\n"
+                    "4. Si hay varios temas de conversación, sepáralos con puntos de lista o saltos de línea.\n"
+                    "5. Empieza con '📌 *Estado del chat:*' seguido de una descripción resaltada con (*).\n"
+                    "6. Usa nombres reales y muchos emojis."
                 )},
-                {"role": "user", "content": f"Resume este historial:\n{historial}"}
+                {"role": "user", "content": f"Resume este historial separando los temas importantes:\n{historial}"}
             ],
         )
         respuesta = completion.choices[0].message.content
