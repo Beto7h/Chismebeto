@@ -19,9 +19,9 @@ safety_settings = [
 ]
 
 genai.configure(api_key=GEMINI_KEY)
-# Usamos 'gemini-1.5-flash-latest' para máxima estabilidad
+# CAMBIO CLAVE: Usamos 'models/gemini-1.5-flash' para solucionar el error 404
 model = genai.GenerativeModel(
-    model_name='gemini-1.5-flash-latest',
+    model_name='models/gemini-1.5-flash',
     safety_settings=safety_settings
 )
 bot = telebot.TeleBot(TOKEN)
@@ -36,7 +36,7 @@ MODOS_CONFIG = {
     "noticiero": {"prompt": "Reporte de noticias de última hora con titulares dramáticos. Emojis: 🚨, 🎤.", "anuncio": "🚨 𝑼𝑳𝑻𝑰𝑴𝑨 𝑯𝑶𝑹𝑨 🚨"},
     "drama": {"prompt": "Eres un escritor de telenovelas. Resume como una tragedia romántica de traición. Emojis: 💔, 😭.", "anuncio": "🎭 𝕸𝖔𝖉𝖔 𝕯𝖗𝖆𝖒𝖆 🎭"},
     "zen": {"prompt": "Eres un maestro de meditación. Resume con mucha paz y armonía. Emojis: 🌿, 🪷.", "anuncio": "🧘 𝑴𝒐𝒅𝒐 𝒁𝒆𝒏 🧘"},
-    "picoso": {"prompt": "Eres el rey del 'salseo'. Resume señalando momentos incómodos. Sé provocador. Emojis: 🌶️, 🔥,  popcorn.", "anuncio": "🌶️ 𝕸𝖔𝖉𝖔 𝕻𝖎𝖈𝖔𝖘𝖔 🌶️"}
+    "picoso": {"prompt": "Eres el rey del 'salseo'. Resume señalando momentos incómodos. Sé provocador. Emojis: 🌶️, 🔥, popcorn.", "anuncio": "🌶️ 𝕸𝖔𝖉𝖔 𝕻𝖎𝖈𝖔𝖘𝖔 🌶️"}
 }
 
 FRASES_ENTRADA = [
@@ -48,11 +48,11 @@ FRASES_ENTRADA = [
 ]
 
 def generar_mensaje_pro(saludo):
-    """Genera una bienvenida visualmente impactante."""
-    msg = f"✨ *{saludo}* ✨\n"
+    """Genera la bienvenida con el formato exacto solicitado."""
+    msg = f"✨ **{saludo}** ✨\n"
     msg += "━━━━━━━━━━━━━━━━━━\n"
-    msg += "Soy *Don Chismoso*, la IA que pone orden (o más caos) a tus grupos. 🤖\n\n"
-    msg += "📌 *MODOS DE ANÁLISIS:*\n"
+    msg += "Soy **Don Chismoso**, la IA que pone orden (o más caos) a tus grupos. 🤖\n\n"
+    msg += "📌 **MODOS DE ANÁLISIS:**\n"
     msg += "• `/hater` ➔ El resumen más amargado 💅\n"
     msg += "• `/picoso` ➔ Salseo y momentos incómodos 🌶️\n"
     msg += "• `/chisme` ➔ Reporte de vecina metiche ☕\n"
@@ -62,7 +62,7 @@ def generar_mensaje_pro(saludo):
     msg += "• `/resumen` ➔ ¡Sorpresa aleatoria! 🎲\n\n"
     msg += f"💡 **TIP:** Solo leo los últimos {MAX_MENSAJES} mensajes.\n"
     msg += "━━━━━━━━━━━━━━━━━━\n"
-    msg += "🎨 *Bot credo por @Beto7h*"
+    msg += "🎨 **Generado por @Beto7h**"
     return msg
 
 @bot.message_handler(content_types=['new_chat_members'])
@@ -96,7 +96,6 @@ def generar_resumen_final(message, modo_elegido):
         prompt = f"{config['prompt']}\n\nActivos: {top}.\nCitar: {lista}.\n\nCHAT:\n{historial}"
         response = model.generate_content(prompt)
         
-        # Firma dinámica con el nombre del bot y el pack de stickers
         firma = f"\n\n— *Generado por @{bot.get_me().username}* | [Pack by @dmxsticker_bot]"
         bot.reply_to(message, f"{config['anuncio']}\n\n{response.text}{firma}", parse_mode="Markdown")
         
@@ -111,7 +110,6 @@ def cmd_aleatorio(message):
 
 @bot.message_handler(commands=['hater', 'caos', 'chisme', 'noticiero', 'drama', 'zen', 'picoso'])
 def cmd_directos(message):
-    # Soporta comandos con @NombreDelBot
     modo = message.text.split()[0].replace('/', '').split('@')[0].lower()
     generar_resumen_final(message, modo)
 
@@ -125,7 +123,6 @@ def track_messages(message):
         if len(chat_data[cid]) > MAX_MENSAJES: 
             chat_data[cid].pop(0)
 
-# Eliminar cualquier conexión previa para evitar el Error 409
 bot.remove_webhook()
 print("Bot listo y escuchando...")
 bot.polling(none_stop=True)
