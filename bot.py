@@ -53,9 +53,13 @@ def obtener_ranking(cid):
 @bot.message_handler(commands=['start', 'ayuda'])
 def send_help(message):
     saludo = "¡Hola! He llegado para poner orden a este caos. 💅"
+    # Asegúrate de que esta línea tenga la 'f' al principio
     msg = f"✨ *{saludo}* ✨\n━━━━━━━━━━━━━━━━━━\n"
     msg += "Soy *Don Chismoso*, la IA que resume el salseo de tus grupos. 🤖\n\n"
-    msg += "📊 *CAPACIDAD:* Leo hasta *{MAX_MENSAJES} mensajes*. ⏳\n\n"
+    
+    # Aquí es donde se corrige para que muestre el número 500
+    msg += f"📊 *CAPACIDAD:* Leo hasta *{MAX_MENSAJES} mensajes*. ⏳\n\n"
+    
     msg += "📌 *COMANDOS DISPONIBLES:*\n"
     msg += "• `/chisme` ➔ Resumen tipo vecina criticona. ☕\n"
     msg += "• `/hater` ➔ Resumen tóxico y sarcástico. 🙄\n"
