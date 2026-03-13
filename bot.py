@@ -16,7 +16,6 @@ bot = telebot.TeleBot(TOKEN)
 chat_data = {}
 MAX_MENSAJES = 500 
 
-# --- LISTA DE FRASES DE BIENVENIDA ---
 FRASES_BIENVENIDA = [
     "¡Hola! He llegado para poner orden a este caos. 💅",
     "¿Alguien dijo chisme? Ya estoy aquí para contarlo todo. ☕",
@@ -45,8 +44,6 @@ MODOS_CONFIG = {
     "caos": {"prompt": "Agente del caos total. Describe el 'Estado del chat' como un colapso mental colectivo.", "anuncio": "🌀 𝑴𝑶𝑫𝑶 𝑪𝑨𝑶𝑺 🌀"}
 }
 
-# --- FUNCIONES DE APOYO ---
-
 def el_bot_es_admin(chat_id):
     if chat_id > 0: return True
     try:
@@ -73,12 +70,9 @@ def obtener_ranking(cid):
     ranking_msg += f"🔥 _Analizando los últimos {len(chat_data[cid])} mensajes..._\n"
     return ranking_msg
 
-# --- HANDLERS ---
-
 @bot.message_handler(commands=['start', 'ayuda'])
 def send_help(message):
     saludo_aleatorio = random.choice(FRASES_BIENVENIDA)
-    
     msg = f"✨ *{saludo_aleatorio}* ✨\n━━━━━━━━━━━━━━━━━━\n"
     msg += "Soy *Don Chismoso*, la IA que resume el salseo de tus grupos. 🤖\n\n"
     msg += f"📊 *CAPACIDAD:* Leo hasta *{MAX_MENSAJES} mensajes*. ⏳\n\n"
@@ -123,15 +117,15 @@ def cmd_resumen(message):
             messages=[
                 {"role": "system", "content": (
                     f"Eres un experto resumidor con estilo {config['prompt']}. "
-                    "REGLAS DE FORMATO:\n"
-                    "1. Usa UN SOLO asterisco (*) para resaltar nombres y frases.\n"
-                    "2. PROHIBIDO usar (**).\n"
-                    "3. Escribe en PÁRRAFOS SEPARADOS y cortos.\n"
-                    "4. Usa solo nombres reales.\n"
-                    "5. La primera línea debe ser '📌 *Estado del chat:*' seguida de una descripción CREATIVA, resaltada con (*).\n"
-                    "6. Usa muchos emojis."
+                    "REGLAS OBLIGATORIAS:\n"
+                    "1. PROHIBIDO usar @usernames. Solo usa los NOMBRES REALES (los que están entre paréntesis).\n"
+                    "2. Usa UN SOLO asterisco (*) para resaltar nombres y frases clave.\n"
+                    "3. PROHIBIDO usar (**).\n"
+                    "4. Escribe en PÁRRAFOS SEPARADOS y cortos.\n"
+                    "5. La primera línea debe ser '📌 *Estado del chat:*' seguido de una descripción creativa resaltada con (*).\n"
+                    "6. Usa muchos emojis y lenguaje coloquial."
                 )},
-                {"role": "user", "content": f"Resume este historial:\n{historial}"}
+                {"role": "user", "content": f"Resume este historial usando SOLO los nombres reales entre paréntesis:\n{historial}"}
             ],
         )
         respuesta = completion.choices[0].message.content
@@ -149,6 +143,7 @@ def track_messages(message):
             if cid not in chat_data: chat_data[cid] = []
             username = f"@{message.from_user.username}" if message.from_user.username else "SinUser"
             nombre = message.from_user.first_name
+            # Guardamos ambos, pero la IA ahora sabe que solo debe usar el 'nombre'
             chat_data[cid].append(f"{username} ({nombre}): {message.text}")
             if len(chat_data[cid]) > MAX_MENSAJES:
                 chat_data[cid].pop(0)
