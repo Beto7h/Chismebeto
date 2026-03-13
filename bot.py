@@ -70,17 +70,14 @@ MENSAJES_BIENVENIDA = [
     "¡Llegó el jefe! Despejen el área y suelten el veneno. 🐍"
 ]
 
-# --- NUEVA FUNCIÓN: AUTO-BIENVENIDA AL SER AGREGADO ---
 @bot.message_handler(content_types=['new_chat_members'])
 def auto_welcome(message):
     for user in message.new_chat_members:
-        # Si el usuario nuevo es el bot mismo
         if user.id == bot.get_me().id:
             bienvenida = random.choice(MENSAJES_BIENVENIDA)
             texto = f"🤖 **{bienvenida}**\n\n💬 Úsame con: /hater, /caos, /chisme, /noticiero, /drama, /zen, /picoso o /resumen."
             bot.send_message(message.chat.id, texto, parse_mode="Markdown")
 
-# Comando Ayuda manual
 @bot.message_handler(commands=['start', 'ayuda'])
 def send_help(message):
     bienvenida = random.choice(MENSAJES_BIENVENIDA)
@@ -104,7 +101,8 @@ def generar_resumen_final(message, modo_elegido):
         response = model.generate_content(prompt)
         texto_final = f"✨ **{config['anuncio']}** ✨\n\n{response.text}"
         bot.reply_to(message, texto_final, parse_mode="Markdown")
-    except:
+    except Exception as e:
+        print(f"Error Gemini: {e}")
         bot.reply_to(message, "Error en la Matrix. Intenta de nuevo.")
 
 @bot.message_handler(commands=['resumen'])
@@ -124,7 +122,8 @@ def track_messages(message):
         if cid not in chat_data: chat_data[cid] = []
         user = f"@{message.from_user.username}" if message.from_user.username else message.from_user.first_name
         chat_data[cid].append(f"{user}: {message.text}")
-        if len(chat_data[cid]) > MAX_MENSA_JES: chat_data[cid].pop(0)
+        if len(chat_data[cid]) > MAX_MENSAJES: 
+            chat_data[cid].pop(0)
 
 print("Bot listo y escuchando...")
 bot.polling(none_stop=True)
