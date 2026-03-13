@@ -27,7 +27,6 @@ MODOS_CONFIG = {
     "picoso": {"prompt": "Rey del salseo y la provocación.", "anuncio": "🌶️ 𝕸𝖔𝖉𝖔 𝕻𝖎𝖈𝖔𝖘𝖔 🌶️"}
 }
 
-# Lista de frases con personalidad para el saludo inicial
 FRASES_ENTRADA = [
     "He llegado para juzgar sus conversaciones. No esperen piedad. 💅",
     "¡Hola! Soy el que lee todo lo que escriben mientras ustedes no miran. 👁️",
@@ -37,19 +36,21 @@ FRASES_ENTRADA = [
 ]
 
 def generar_mensaje_pro(saludo):
-    """Genera una estructura de bienvenida visualmente atractiva."""
-    msg = f"✨ **{saludo}** ✨\n\n"
-    msg += "Soy el **Resumidor Pro**, tu IA avanzada para analizar el chisme, el drama y las tonterías de este chat.\n\n"
-    msg += "🚀 **¿Cómo invocar mi poder?**\n"
-    msg += "Escribe cualquiera de estos comandos:\n\n"
-    msg += "• `/hater` - Crítica ácida y amargada 💅\n"
-    msg += "• `/picoso` - Echa leña al fuego (Salseo) 🌶️\n"
-    msg += "• `/chisme` - Reporte estilo vecina metiche ☕\n"
-    msg += "• `/noticiero` - Titulares dramáticos 🚨\n"
-    msg += "• `/drama` - Una tragedia de novela 💔\n"
-    msg += "• `/zen` - Paz y armonía (si se portan bien) 🧘\n"
-    msg += "• `/resumen` - Deja que el azar decida 🎲\n\n"
-    msg += "💡 **Dato:** Entre más hablen, más material tengo para exponerlos. ¡No se detengan!"
+    """Genera una bienvenida visualmente impactante."""
+    msg = f"✨ **{saludo}** ✨\n"
+    msg += "━━━━━━━━━━━━━━━━━━\n"
+    msg += "Soy **Resumidor Pro**, la IA que pone orden (o más caos) a tus grupos. 🤖\n\n"
+    msg += "📌 **MODOS DE ANÁLISIS:**\n"
+    msg += "• `/hater` ➔ El resumen más amargado 💅\n"
+    msg += "• `/picoso` ➔ Salseo y momentos incómodos 🌶️\n"
+    msg += "• `/chisme` ➔ Reporte de vecina metiche ☕\n"
+    msg += "• `/noticiero` ➔ Titulares de última hora 🚨\n"
+    msg += "• `/drama` ➔ Tragedia de telenovela 🎭\n"
+    msg += "• `/zen` ➔ Resumen en paz y armonía 🧘\n"
+    msg += "• `/resumen` ➔ ¡Sorpresa aleatoria! 🎲\n\n"
+    msg += "💡 **TIP:** Solo leo los últimos 500 mensajes.\n"
+    msg += "━━━━━━━━━━━━━━━━━━\n"
+    msg += "🎨 *Pack by @dmxsticker_bot*"
     return msg
 
 @bot.message_handler(content_types=['new_chat_members'])
@@ -79,10 +80,11 @@ def generar_resumen_final(message, modo_elegido):
     try:
         prompt = f"{config['prompt']}\n\nActivos: {top}.\nCitar: {lista}.\n\nCHAT:\n{historial}"
         response = model.generate_content(prompt)
-        # Añadimos la firma personalizada que me pediste
         firma = f"\n\n— *Generado por @{bot.get_me().username}* | [Pack by @dmxsticker_bot]"
         bot.reply_to(message, f"{config['anuncio']}\n\n{response.text}{firma}", parse_mode="Markdown")
     except Exception as e:
+        # Esto imprimirá el error real en los logs de Koyeb para que sepas qué pasó
+        print(f"ERROR TÉCNICO GEMINI: {e}")
         bot.reply_to(message, "Hubo un error con Gemini. Intenta de nuevo.")
 
 @bot.message_handler(commands=['resumen'])
