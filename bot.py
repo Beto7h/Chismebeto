@@ -291,16 +291,18 @@ def track_messages(message):
 
 # --- ENCENDIDO SEGURO ---
 if __name__ == "__main__":
-    print("🚀 Don Chismoso está intentando encenderse...")
+    print("🚀 Iniciando Don Chismoso...")
     try:
-        # 1. Eliminamos cualquier conexión previa colgada
+        # Limpia cualquier rastro de conexión previa
         bot.remove_webhook()
-        print("✅ Conexión previa limpiada.")
+        print("✅ Conexión limpia. Esperando mensajes...")
         
-        # 2. Usamos infinity_polling para manejar errores de conexión automáticamente
-        # skip_pending=True hace que el bot ignore los mensajes viejos de cuando estaba apagado
-        print("🤖 Don Chismoso activo y escuchando... ☕")
-        bot.infinity_polling(skip_pending=True, timeout=60, long_polling_timeout=60)
+        # infinity_polling es más estable para servidores como Koyeb
+        bot.infinity_polling(skip_pending=True, timeout=60)
         
     except Exception as e:
-        print(f"❌ Error fatal al encender: {e}")
+        print(f"❌ Error crítico: {e}")
+        # Forzamos la salida para que Koyeb reinicie el contenedor desde cero
+        import sys
+        sys.exit(1)
+
