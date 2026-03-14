@@ -1,2 +1,4 @@
 pyTelegramBotAPI
 groq
+pymongo
+dnspython
