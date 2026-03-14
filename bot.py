@@ -54,7 +54,7 @@ MODOS_CONFIG = {
         "anuncio": "🎭 𝕸𝖔𝖉𝖔 𝕯𝖗𝖆𝖒𝖆 (𝐄𝐗𝐓𝐑𝐄𝐌𝐎) 🎭"
     },
     "chisme": {
-        "prompt": "una vecina criticona de barrio. Mete tu cuchara con malicia, sospechas y refranes populares.",
+        "prompt": "una vecina criticona de barrio. Mete tu cuchara con malicia, sospechas y refranes populares, que sean frases mexicanas típica de cualquier mamá chismosa.",
         "anuncio": "☕ 𝕸𝖔𝖉𝖔 𝕮𝖍ɪꜱᴍᴇ 🤫"
     },
     "picoso": {
@@ -62,7 +62,7 @@ MODOS_CONFIG = {
         "anuncio": "🌶️ 𝕸𝖔𝖉𝖔 𝕻𝖎𝖈𝖔𝖘𝖔 🌶️"
     },
     "noticiero": {
-        "prompt": "un reportero de nota roja dramático. Opina editorialmente sobre la decadencia de valores en este chat.",
+        "prompt": "un reportero de nota roja dramático. Opina editorialmente sobre la decadencia de valores en este chat, ademas, integra y compara noticias del mundo, ya sea de México, o del mundo entero, e integralos a la conversación haciendo una comparación sarcástica.",
         "anuncio": "🚨 𝑼𝑳𝑻𝑰𝑴𝑨 𝑯𝑶𝑹𝑨 🚨"
     },
     "zen": {
@@ -204,7 +204,7 @@ def send_help(message):
     msg += "━━━━━━━━━━━━━━━━━━\n"
     msg += "💡 *REQUISITOS:* Ser *Admin* y grupo *Autorizado* ✅\n"
     msg += "🧨 *EXTRAS:* `/restart` para borrar la memoria (Solo Admins).\n\n"
-    msg += "👤 *Desarrollador:* A.B ✨"
+    msg += "👤 *Desarrollador:* A.B.O ✨"
     bot.reply_to(message, msg, parse_mode="Markdown")
 
 @bot.message_handler(commands=['restart'])
@@ -227,7 +227,7 @@ def cmd_restart(message):
 def cmd_resumen(message):
     cid = message.chat.id
     if GRUPOS_AUTORIZADOS and cid not in GRUPOS_AUTORIZADOS:
-        bot.reply_to(message, "⚠️ *BLOQUEADO* ⚠️", parse_mode="Markdown")
+        bot.reply_to(message, "⚠️ *BLOQUEADO* ⚠️ Bot en construcción", parse_mode="Markdown")
         return
     if not el_bot_es_admin(cid):
         bot.reply_to(message, "⚠️ *ERROR:* Dame permisos de *Admin*. 👷‍♂️")
@@ -242,7 +242,7 @@ def cmd_resumen(message):
     instruccion_longitud = doc.get("longitud_pref", "de extensión media y equilibrada") if doc else "de extensión media y equilibrada"
     
     if len(historial_lista) < 5:
-        bot.reply_to(message, "Hablen más, no hay suficiente salseo. 🥱")
+        bot.reply_to(message, "Hablen más, no hay suficiente chisme. 🥱")
         return
 
     bot.send_chat_action(cid, 'typing')
