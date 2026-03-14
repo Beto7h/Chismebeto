@@ -272,22 +272,35 @@ def cmd_resumen(message):
         bot.reply_to(message, "¡El chisme explotó! ⚠️")
 
 # --- ESCUCHA DE MENSAJES ---
-
+# IMPORTANTE: Este handler debe ir AL FINAL de todos los @bot.message_handler
 @bot.message_handler(func=lambda message: True)
 def track_messages(message):
-    if not GRUPOS_AUTORIZADOS or message.chat.id in GRUPOS_AUTORIZADOS:
+    # Verificamos que sea un grupo autorizado y que NO sea un comando (empiece con /)
+    if (not GRUPOS_AUTORIZADOS or message.chat.id in GRUPOS_AUTORIZADOS):
         if message.text and not message.text.startswith('/'):
             cid = message.chat.id
             username = f"@{message.from_user.username}" if message.from_user.username else "SinUser"
             nombre = message.from_user.first_name
             texto_formateado = f"{username} ({nombre}): {message.text}"
+            
             collection.update_one(
                 {"chat_id": cid},
                 {"$push": {"mensajes": {"$each": [texto_formateado], "$slice": -MAX_MENSAJES}}},
                 upsert=True
             )
 
+# --- ENCENDIDO SEGURO ---
 if __name__ == "__main__":
-    print("🤖 Don Chismoso activo con Panel de Configuración ✅...")
-    bot.remove_webhook()
-    bot.polling(none_stop=True)
+    print("🚀 Don Chismoso está intentando encenderse...")
+    try:
+        # 1. Eliminamos cualquier conexión previa colgada
+        bot.remove_webhook()
+        print("✅ Conexión previa limpiada.")
+        
+        # 2. Usamos infinity_polling para manejar errores de conexión automáticamente
+        # skip_pending=True hace que el bot ignore los mensajes viejos de cuando estaba apagado
+        print("🤖 Don Chismoso activo y escuchando... ☕")
+        bot.infinity_polling(skip_pending=True, timeout=60, long_polling_timeout=60)
+        
+    except Exception as e:
+        print(f"❌ Error fatal al encender: {e}")
