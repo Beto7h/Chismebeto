@@ -130,7 +130,7 @@ def cmd_resumen(message):
         )
         respuesta = completion.choices[0].message.content
         ranking = obtener_ranking(cid)
-        firma = f"\n\n_— Generado por @donchismebot 🤖 | Desarrollado por @Beto7h ✨_"
+        firma = f"\n\n_— Generado por @donchismebot 🤖 | Desarrollado con Migajas ✨_"
         bot.reply_to(message, f"{config['anuncio']}\n\n{respuesta}{ranking}{firma}", parse_mode="Markdown")
     except Exception:
         bot.reply_to(message, "¡El chisme explotó! ⚠️")
