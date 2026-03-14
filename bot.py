@@ -111,7 +111,7 @@ def send_help(message):
     
     msg = f"✨ *{saludo_aleatorio}* ✨\n━━━━━━━━━━━━━━━━━━\n"
     msg += "Soy *Don Chismoso*, la IA que resume el salseo de tus grupos. 🤖\n\n"
-    msg += f"📊 *CAPACIDAD:* Leo hasta *{MAX_MENSAJES} mensajes* guardados en DB. ⏳\n\n"
+    msg += f"📊 *CAPACIDAD:* Leo hasta *{MAX_MENSAJES} mensajes* guardados en los grupos. ⏳\n\n"
     msg += "📌 *COMANDOS DISPONIBLES:*\n"
     msg += "• `/chisme` ➔ Estilo vecina criticona. ☕\n"
     msg += "• `/hater` ➔ Estilo tóxico y sarcástico. 🙄\n"
