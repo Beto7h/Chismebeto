@@ -46,7 +46,7 @@ ERRORES_PERSONALIDAD = [
 
 MODOS_CONFIG = {
     "hater": {
-        "prompt": "un hater cínico y amargado. Mete tu cuchara con desprecio y usa memes como 'quedaste 🤡' o 'mucho texto'.",
+        "prompt": "un hater cínico y amargado. Mete tu cuchara con desprecio y usa memes de frases populares en México o populares del momento, que sean graciosos, añadiendo también varios emojis.",
         "anuncio": "✨ ᴍᴏᴅᴏ ʜᴀᴛᴇʀ (ᴛÓxɪᴄᴏ) ✨"
     },
     "drama": {
@@ -58,7 +58,7 @@ MODOS_CONFIG = {
         "anuncio": "☕ 𝕸𝖔𝖉𝖔 𝕮𝖍ɪꜱᴍᴇ 🤫"
     },
     "picoso": {
-        "prompt": "un busca-pleitos e instigador. Opina echando leña al fuego para que los usuarios se peleen entre ellos.",
+        "prompt": "un busca-pleitos e instigador. Opina echando leña al fuego para que los usuarios se peleen entre ellos, agrega emojis randoms.",
         "anuncio": "🌶️ 𝕸𝖔𝖉𝖔 𝕻𝖎𝖈𝖔𝖘𝖔 🌶️"
     },
     "noticiero": {
@@ -155,7 +155,7 @@ def cmd_restart(message):
 
     try:
         collection.update_one({"chat_id": cid}, {"$set": {"mensajes": []}})
-        bot.reply_to(message, "✨ *MEMORIA PURGADA* ✨\n\nHistorial borrado. ¡Que empiece el nuevo salseo! 😈🔥", parse_mode="Markdown")
+        bot.reply_to(message, "✨ *MEMORIA PURGADA* ✨\n\nHistorial borrado. ¡Que empiece el nuevo chisme! 😈🔥", parse_mode="Markdown")
     except:
         bot.reply_to(message, "Hubo un error al intentar olvidar... mi cerebro es demasiado grande. 🧠")
 
@@ -191,10 +191,10 @@ def cmd_resumen(message):
                     f"Eres {config['prompt']}. "
                     "REGLAS DE FORMATO CRÍTICAS:\n"
                     "1. Resumen: Usa texto normal. Nombres en *Negrita*.\n"
-                    "2. Tu Opinión: Después de cada párrafo, DEBES poner tu opinión en una línea nueva que empiece con '>' y el texto en _\"cursiva, comillas y emojis\"_.\n"
+                    "2. Tu Opinión: Después de cada párrafo, DEBES poner tu opinión en una línea nueva que empiece con '-' y el texto en _\"cursiva, comillas y emojis aleatorios y graciosos\"_.\n"
                     "   Ejemplo: > _\"Es que no puedo con esto, qué oso... 🙄💅\"_\n"
                     "3. PROHIBIDO usar cursivas fuera de tus opiniones.\n"
-                    "4. La primera línea DEBE ser '📌 *Estado del chat:*' seguida de una frase creativa."
+                    "4. La primera línea DEBE ser '📌 *Estado del chat:*' seguida de una frase creativa con emojis de acuerdo a el chat."
                 )},
                 {"role": "user", "content": f"Resume y opina sobre este chisme:\n{historial_texto}"}
             ],
@@ -202,7 +202,7 @@ def cmd_resumen(message):
         
         respuesta = completion.choices[0].message.content
         ranking = obtener_ranking(cid)
-        firma = f"\n\n— @donchismebot 🤖 | Dev: Albert ✨"
+        firma = f"\n\n_— Generado por @donchismebot 🤖 | Brain: Albert ✨_"
         
         enviar_con_plan_b(message, f"{config['anuncio']}\n\n{respuesta}{ranking}{firma}")
 
