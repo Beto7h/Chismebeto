@@ -3,19 +3,33 @@ import random
 import telebot
 from groq import Groq
 from collections import Counter
+from pymongo import MongoClient
 
-# --- CONFIGURACIÓN ---
+# --- CONFIGURACIÓN DE VARIABLES ---
 TOKEN = os.getenv('TELEGRAM_TOKEN')
 GROQ_KEY = os.getenv('GROQ_API_KEY')
+MONGO_URI = os.getenv('MONGO_URI')
 AUTORIZADOS_RAW = os.getenv('GRUPOS_AUTORIZADOS', '')
 GRUPOS_AUTORIZADOS = [int(i.strip()) for i in AUTORIZADOS_RAW.split(',') if i.strip()]
 
+# --- INICIALIZACIÓN DE CLIENTES ---
 client = Groq(api_key=GROQ_KEY)
 bot = telebot.TeleBot(TOKEN)
 
-chat_data = {}
+# --- CONFIGURACIÓN MONGODB ---
+try:
+    db_client = MongoClient(MONGO_URI)
+    db = db_client['don_chismoso_db']
+    collection = db['historial_chats']
+    # Prueba de conexión
+    db_client.admin.command('ping')
+    print("✅ Conexión exitosa a MongoDB")
+except Exception as e:
+    print(f"❌ Error conectando a MongoDB: {e}")
+
 MAX_MENSAJES = 500 
 
+# --- PERSONALIZACIÓN ---
 FRASES_BIENVENIDA = [
     "¡Hola! He llegado para poner orden a este caos. 💅",
     "¿Alguien dijo chisme? Ya estoy aquí para contarlo todo. ☕",
@@ -44,6 +58,21 @@ MODOS_CONFIG = {
     "caos": {"prompt": "Agente del caos total. Describe el 'Estado del chat' como un colapso mental colectivo.", "anuncio": "🌀 𝑴𝑶𝑫𝑶 𝑪𝑨𝑶𝑺 🌀"}
 }
 
+# --- FUNCIONES DE PERSISTENCIA (MONGODB) ---
+
+def obtener_historial(chat_id):
+    """Recupera la lista de mensajes de la DB para un chat específico"""
+    doc = collection.find_one({"chat_id": chat_id})
+    return doc['mensajes'] if doc else []
+
+def guardar_mensaje_db(chat_id, texto_formateado):
+    """Guarda un mensaje nuevo y mantiene el límite de 500 en la DB"""
+    collection.update_one(
+        {"chat_id": chat_id},
+        {"$push": {"mensajes": {"$each": [texto_formateado], "$slice": -MAX_MENSAJES}}},
+        upsert=True
+    )
+
 def el_bot_es_admin(chat_id):
     if chat_id > 0: return True
     try:
@@ -52,30 +81,37 @@ def el_bot_es_admin(chat_id):
     except:
         return False
 
-def obtener_ranking(cid):
-    if cid not in chat_data or not chat_data[cid]:
-        return ""
+def obtener_ranking(chat_id):
+    mensajes = obtener_historial(chat_id)
+    if not mensajes: return ""
+    
     nombres_reales = []
-    for msg in chat_data[cid]:
+    for msg in mensajes:
         try:
+            # Extrae el nombre real entre paréntesis
             nombre = msg.split(' (')[1].split('):')[0]
             nombres_reales.append(nombre)
         except:
             continue
+
     if not nombres_reales: return ""
     conteo = Counter(nombres_reales)
     mas_activo, num_mensajes = conteo.most_common(1)[0]
+    
     ranking_msg = f"\n\n🏆 *RANKING DEL CHISME:*\n"
     ranking_msg += f"👑 *El más activo:* {mas_activo} ({num_mensajes} mensajes)\n"
-    ranking_msg += f"🔥 _Analizando los últimos {len(chat_data[cid])} mensajes..._\n"
+    ranking_msg += f"🔥 _Analizando los últimos {len(mensajes)} mensajes de la DB..._\n"
     return ranking_msg
+
+# --- HANDLERS DE COMANDOS ---
 
 @bot.message_handler(commands=['start', 'ayuda'])
 def send_help(message):
     saludo_aleatorio = random.choice(FRASES_BIENVENIDA)
+    
     msg = f"✨ *{saludo_aleatorio}* ✨\n━━━━━━━━━━━━━━━━━━\n"
     msg += "Soy *Don Chismoso*, la IA que resume el salseo de tus grupos. 🤖\n\n"
-    msg += f"📊 *CAPACIDAD:* Leo hasta *{MAX_MENSAJES} mensajes*. ⏳\n\n"
+    msg += f"📊 *CAPACIDAD:* Leo hasta *{MAX_MENSAJES} mensajes* guardados en DB. ⏳\n\n"
     msg += "📌 *COMANDOS DISPONIBLES:*\n"
     msg += "• `/chisme` ➔ Estilo vecina criticona. ☕\n"
     msg += "• `/hater` ➔ Estilo tóxico y sarcástico. 🙄\n"
@@ -84,7 +120,7 @@ def send_help(message):
     msg += "• `/drama` ➔ Telenovela trágica. 🎭\n"
     msg += "• `/zen` ➔ Paz y armonía espiritual. 🧘\n"
     msg += "• `/caos` ➔ Mezcla sin sentido. 🌀\n"
-    msg += "• `/resumen` ➔ Modo sorpresa (azar). 🎲\n\n"
+    msg += "• `/resumen` ➔ Modo sorpresa. 🎲\n\n"
     msg += "━━━━━━━━━━━━━━━━━━\n"
     msg += "💡 *REQUISITOS:* Ser *Admin* y grupo *Autorizado* ✅\n\n"
     msg += "👤 *Desarrollador:* Albert ✨"
@@ -94,7 +130,7 @@ def send_help(message):
 def cmd_resumen(message):
     cid = message.chat.id
     if GRUPOS_AUTORIZADOS and cid not in GRUPOS_AUTORIZADOS:
-        bot.reply_to(message, "⚠️ *FUNCIÓN BLOQUEADA* ⚠️\nBot en desarrollo ✨", parse_mode="Markdown")
+        bot.reply_to(message, "⚠️ *FUNCIÓN BLOQUEADA* ⚠️\nBot aun en construcción ✨", parse_mode="Markdown")
         return
     if not el_bot_es_admin(cid):
         bot.reply_to(message, "⚠️ *ERROR:* Necesito ser *Admin*. 👷‍♂️⚙️")
@@ -103,51 +139,61 @@ def cmd_resumen(message):
     comando = message.text.split()[0].lower().replace('/', '').split('@')[0]
     modo = comando if comando in MODOS_CONFIG else random.choice(list(MODOS_CONFIG.keys()))
     
-    if cid not in chat_data or len(chat_data[cid]) < 5:
-        bot.reply_to(message, "Hablen más, no hay suficiente chisme. 🥱")
+    # Obtener historial desde MongoDB
+    historial_lista = obtener_historial(cid)
+    
+    if len(historial_lista) < 5:
+        bot.reply_to(message, "Hablen más, no hay suficiente chisme en la base de datos. 🥱")
         return
 
     config = MODOS_CONFIG[modo]
     bot.send_chat_action(cid, 'typing')
     
     try:
-        historial = "\n".join(chat_data[cid])
+        historial_texto = "\n".join(historial_lista)
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": (
                     f"Eres un experto resumidor con estilo {config['prompt']}. "
                     "REGLAS OBLIGATORIAS:\n"
-                    "1. PROHIBIDO usar @usernames. Solo usa los NOMBRES REALES (los que están entre paréntesis).\n"
-                    "2. Usa UN SOLO asterisco (*) para resaltar nombres y frases clave.\n"
-                    "3. PROHIBIDO usar (**).\n"
-                    "4. Escribe en PÁRRAFOS SEPARADOS y cortos.\n"
-                    "5. La primera línea debe ser '📌 *Estado del chat:*' seguido de una descripción creativa resaltada con (*).\n"
-                    "6. Usa muchos emojis y lenguaje coloquial."
+                    "1. Usa UN SOLO asterisco (*) para resaltar nombres y frases.\n"
+                    "2. PROHIBIDO usar (**).\n"
+                    "3. Escribe en VARIOS PÁRRAFOS cortos. No amontones el texto.\n"
+                    "4. Usa nombres reales (están entre paréntesis).\n"
+                    "5. La primera línea DEBE ser '📌 *Estado del chat:*' seguida de una descripción CREATIVA basada en los mensajes, resaltada con (*).\n"
+                    "6. Usa muchísimos emojis y jerga coloquial."
                 )},
-                {"role": "user", "content": f"Resume este historial usando SOLO los nombres reales entre paréntesis:\n{historial}"}
+                {"role": "user", "content": f"Resume este historial separando temas:\n{historial_texto}"}
             ],
         )
         respuesta = completion.choices[0].message.content
         ranking = obtener_ranking(cid)
-        firma = f"\n\n_— Generado por @donchismebot 🤖 | Desarrollado con Migajas ✨_"
+        firma = f"\n\n_— Generado por @donchismebot 🤖 | Desarrollado por ᴀʟʙᴇʀᴛ ✨_"
         bot.reply_to(message, f"{config['anuncio']}\n\n{respuesta}{ranking}{firma}", parse_mode="Markdown")
-    except Exception:
+    except Exception as e:
+        print(f"Error Groq: {e}")
         bot.reply_to(message, "¡El chisme explotó! ⚠️")
+
+# --- ESCUCHA DE MENSAJES ---
 
 @bot.message_handler(func=lambda message: True)
 def track_messages(message):
+    # Verificamos si el chat está autorizado
     if not GRUPOS_AUTORIZADOS or message.chat.id in GRUPOS_AUTORIZADOS:
+        # Solo guardamos texto que no sea un comando
         if message.text and not message.text.startswith('/'):
             cid = message.chat.id
-            if cid not in chat_data: chat_data[cid] = []
             username = f"@{message.from_user.username}" if message.from_user.username else "SinUser"
             nombre = message.from_user.first_name
-            # Guardamos ambos, pero la IA ahora sabe que solo debe usar el 'nombre'
-            chat_data[cid].append(f"{username} ({nombre}): {message.text}")
-            if len(chat_data[cid]) > MAX_MENSAJES:
-                chat_data[cid].pop(0)
+            
+            texto_formateado = f"{username} ({nombre}): {message.text}"
+            
+            # Guardamos directamente en MongoDB
+            guardar_mensaje_db(cid, texto_formateado)
 
-bot.remove_webhook()
-bot.stop_polling()
-bot.polling(none_stop=True)
+# --- INICIO DEL BOT ---
+if __name__ == "__main__":
+    print("🤖 Don Chismoso está activo y conectado a la DB...")
+    bot.remove_webhook()
+    bot.polling(none_stop=True)
