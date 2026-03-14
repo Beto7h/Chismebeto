@@ -105,22 +105,87 @@ def obtener_ranking(chat_id):
     return ranking_msg
 
 def enviar_con_plan_b(message, texto_final):
-    """Envía con Markdown, si falla, usa texto plano con frase de error personalizada."""
     try:
         bot.reply_to(message, texto_final, parse_mode="Markdown")
     except Exception as e:
-        print(f"Plan B activado por error: {e}")
+        print(f"Plan B activado: {e}")
         frase_fail = random.choice(ERRORES_PERSONALIDAD)
-        # Limpieza de símbolos problemáticos para modo seguro
         texto_seguro = texto_final.replace("_", "").replace("*", "").replace(">", "—")
         bot.reply_to(message, f"{frase_fail}\n\n{texto_seguro}")
+
+# --- HANDLERS DE CONFIGURACIÓN ---
+
+@bot.message_handler(commands=['config'])
+def cmd_config(message):
+    cid = message.chat.id
+    if not el_bot_es_admin(cid):
+        bot.reply_to(message, "❌ Solo los admins pueden configurar mi longitud. 💅")
+        return
+
+    doc = collection.find_one({"chat_id": cid})
+    pref_actual = doc.get("pref_key", "medio") if doc else "medio"
+
+    markup = telebot.types.InlineKeyboardMarkup()
+    txt_corto = "⚡ Corto" + (" ✅" if pref_actual == "corto" else "")
+    txt_medio = "⚖️ Medio" + (" ✅" if pref_actual == "medio" else "")
+    txt_largo = "📜 Largo" + (" ✅" if pref_actual == "largo" else "")
+
+    markup.add(
+        telebot.types.InlineKeyboardButton(txt_corto, callback_data="set_pref_corto"),
+        telebot.types.InlineKeyboardButton(txt_medio, callback_data="set_pref_medio"),
+        telebot.types.InlineKeyboardButton(txt_largo, callback_data="set_pref_largo")
+    )
+
+    bot.send_message(cid, 
+        "⚙️ *CONFIGURACIÓN DE DON CHISMOSO*\n\n"
+        "Selecciona qué tan largos quieres los resúmenes. La opción con ✅ es la activa.", 
+        reply_markup=markup, parse_mode="Markdown")
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('set_pref_'))
+def callback_actualizar_pref(call):
+    cid = call.message.chat.id
+    nueva_pref_key = call.data.replace("set_pref_", "")
+
+    mapeo_ia = {
+        "corto": "MUY BREVE y directo al grano (máximo 1-2 párrafos cortos)",
+        "medio": "de extensión media y equilibrada",
+        "largo": "MUY EXTENSO y sumamente detallado (analiza cada chisme a fondo)"
+    }
+
+    collection.update_one(
+        {"chat_id": cid},
+        {"$set": {
+            "pref_key": nueva_pref_key,
+            "longitud_pref": mapeo_ia[nueva_pref_key]
+        }},
+        upsert=True
+    )
+
+    markup = telebot.types.InlineKeyboardMarkup()
+    txt_corto = "⚡ Corto" + (" ✅" if nueva_pref_key == "corto" else "")
+    txt_medio = "⚖️ Medio" + (" ✅" if nueva_pref_key == "medio" else "")
+    txt_largo = "📜 Largo" + (" ✅" if nueva_pref_key == "largo" else "")
+
+    markup.add(
+        telebot.types.InlineKeyboardButton(txt_corto, callback_data="set_pref_corto"),
+        telebot.types.InlineKeyboardButton(txt_medio, callback_data="set_pref_medio"),
+        telebot.types.InlineKeyboardButton(txt_largo, callback_data="set_pref_largo")
+    )
+
+    try:
+        bot.edit_message_text(
+            f"✅ *Configuración actualizada!*\n\nAhora mis resúmenes serán *{nueva_pref_key.upper()}*.",
+            cid, call.message.message_id, reply_markup=markup, parse_mode="Markdown"
+        )
+        bot.answer_callback_query(call.id, "Guardado ✅")
+    except:
+        bot.answer_callback_query(call.id)
 
 # --- HANDLERS DE COMANDOS ---
 
 @bot.message_handler(commands=['start', 'ayuda'])
 def send_help(message):
     saludo_aleatorio = random.choice(FRASES_BIENVENIDA)
-    
     msg = f"✨ *{saludo_aleatorio}* ✨\n"
     msg += "━━━━━━━━━━━━━━━━━━\n"
     msg += "Soy *Don Chismoso*, la IA que resume los mensajes de tus grupos. 🤖\n\n"
@@ -134,11 +199,12 @@ def send_help(message):
     msg += "• `/zen` ➔ Paz y armonía espiritual. 🧘\n"
     msg += "• `/caos` ➔ Mezcla sin sentido. 🌀\n"
     msg += "• `/resumen` ➔ Modo sorpresa. 🎲\n\n"
+    msg += "⚙️ *CONFIGURACIÓN:*\n"
+    msg += "• `/config` ➔ Ajusta la longitud (Corto, Medio, Largo). ✅\n\n"
     msg += "━━━━━━━━━━━━━━━━━━\n"
     msg += "💡 *REQUISITOS:* Ser *Admin* y grupo *Autorizado* ✅\n"
     msg += "🧨 *EXTRAS:* `/restart` para borrar la memoria (Solo Admins).\n\n"
     msg += "👤 *Desarrollador:* A.B ✨"
-    
     bot.reply_to(message, msg, parse_mode="Markdown")
 
 @bot.message_handler(commands=['restart'])
@@ -147,17 +213,15 @@ def cmd_restart(message):
     if not el_bot_es_admin(cid):
         bot.reply_to(message, "⚠️ Necesito ser *Admin* para gestionar mi memoria.")
         return
-    
     status = bot.get_chat_member(cid, message.from_user.id).status
     if status not in ['administrator', 'creator'] and cid < 0:
         bot.reply_to(message, "❌ ¡Atrás! Solo los *admins* pueden purgar mi memoria. 💅")
         return
-
     try:
         collection.update_one({"chat_id": cid}, {"$set": {"mensajes": []}})
         bot.reply_to(message, "✨ *MEMORIA PURGADA* ✨\n\nHistorial borrado. ¡Que empiece el nuevo chisme! 😈🔥", parse_mode="Markdown")
     except:
-        bot.reply_to(message, "Hubo un error al intentar olvidar... mi cerebro es demasiado grande. 🧠")
+        bot.reply_to(message, "Hubo un error al intentar olvidar... 🧠")
 
 @bot.message_handler(commands=['resumen', 'hater', 'picoso', 'chisme', 'noticiero', 'drama', 'zen', 'caos'])
 def cmd_resumen(message):
@@ -175,9 +239,10 @@ def cmd_resumen(message):
     
     doc = collection.find_one({"chat_id": cid})
     historial_lista = doc['mensajes'] if doc else []
+    instruccion_longitud = doc.get("longitud_pref", "de extensión media y equilibrada") if doc else "de extensión media y equilibrada"
     
     if len(historial_lista) < 5:
-        bot.reply_to(message, "Hablen más, no hay suficiente salseo para un análisis digno. 🥱")
+        bot.reply_to(message, "Hablen más, no hay suficiente salseo. 🥱")
         return
 
     bot.send_chat_action(cid, 'typing')
@@ -189,23 +254,19 @@ def cmd_resumen(message):
             messages=[
                 {"role": "system", "content": (
                     f"Eres {config['prompt']}. "
-                    "REGLAS DE FORMATO CRÍTICAS:\n"
-                    "1. Resumen: Usa texto normal. Nombres en *Negrita*.\n"
-                    "2. Tu Opinión: Después de cada párrafo, DEBES poner tu opinión en una línea nueva que empiece con '-' y el texto en _\"cursiva, comillas y emojis aleatorios y graciosos\"_.\n"
-                    "   Ejemplo: > _\"Es que no puedo con esto, qué oso... 🙄💅\"_\n"
-                    "3. PROHIBIDO usar cursivas fuera de tus opiniones.\n"
-                    "4. La primera línea DEBE ser '📌 *Estado del chat:*' seguida de una frase creativa con emojis de acuerdo a el chat."
+                    f"REGLA DE EXTENSIÓN: Tu resumen debe ser {instruccion_longitud}. "
+                    "REGLAS DE FORMATO:\n"
+                    "1. Resumen: Texto normal. Nombres en *Negrita*.\n"
+                    "2. Tu Opinión: En línea nueva con '>' y texto en _\"cursiva, comillas y emojis\"_.\n"
+                    "3. La primera línea DEBE ser '📌 *Estado del chat:*' con frase creativa."
                 )},
                 {"role": "user", "content": f"Resume y opina sobre este chisme:\n{historial_texto}"}
             ],
         )
-        
         respuesta = completion.choices[0].message.content
         ranking = obtener_ranking(cid)
         firma = f"\n\n_— Generado por @donchismebot 🤖 | Brain: Albert ✨_"
-        
         enviar_con_plan_b(message, f"{config['anuncio']}\n\n{respuesta}{ranking}{firma}")
-
     except Exception as e:
         print(f"Error Groq: {e}")
         bot.reply_to(message, "¡El chisme explotó! ⚠️")
@@ -220,7 +281,6 @@ def track_messages(message):
             username = f"@{message.from_user.username}" if message.from_user.username else "SinUser"
             nombre = message.from_user.first_name
             texto_formateado = f"{username} ({nombre}): {message.text}"
-            
             collection.update_one(
                 {"chat_id": cid},
                 {"$push": {"mensajes": {"$each": [texto_formateado], "$slice": -MAX_MENSAJES}}},
@@ -228,6 +288,6 @@ def track_messages(message):
             )
 
 if __name__ == "__main__":
-    print("🤖 Don Chismoso activo con Plan B y Opiniones...")
+    print("🤖 Don Chismoso activo con Panel de Configuración ✅...")
     bot.remove_webhook()
     bot.polling(none_stop=True)
