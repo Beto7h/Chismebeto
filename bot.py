@@ -87,14 +87,14 @@ def send_help(message):
     msg += "• `/resumen` ➔ Modo sorpresa (azar). 🎲\n\n"
     msg += "━━━━━━━━━━━━━━━━━━\n"
     msg += "💡 *REQUISITOS:* Ser *Admin* y grupo *Autorizado* ✅\n\n"
-    msg += "👤 *Desarrollador:* @Beto7h ✨"
+    msg += "👤 *Desarrollador:* Albert ✨"
     bot.reply_to(message, msg, parse_mode="Markdown")
 
 @bot.message_handler(commands=['resumen', 'hater', 'picoso', 'chisme', 'noticiero', 'drama', 'zen', 'caos'])
 def cmd_resumen(message):
     cid = message.chat.id
     if GRUPOS_AUTORIZADOS and cid not in GRUPOS_AUTORIZADOS:
-        bot.reply_to(message, "⚠️ *FUNCIÓN BLOQUEADA* ⚠️\nContacta a @Beto7h ✨", parse_mode="Markdown")
+        bot.reply_to(message, "⚠️ *FUNCIÓN BLOQUEADA* ⚠️\nBot en desarrollo ✨", parse_mode="Markdown")
         return
     if not el_bot_es_admin(cid):
         bot.reply_to(message, "⚠️ *ERROR:* Necesito ser *Admin*. 👷‍♂️⚙️")
