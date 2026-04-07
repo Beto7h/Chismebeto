@@ -26,6 +26,7 @@ try:
 except Exception as e:
     print(f"❌ Error conectando a MongoDB: {e}")
 
+# Límite de mensajes guardados en base de datos
 MAX_MENSAJES = 500 
 
 # --- PERSONALIZACIÓN Y FRASES ---
@@ -54,7 +55,7 @@ MODOS_CONFIG = {
             "Si el chisme es aburrido, quéjate de que perdiste tu tiempo. "
             "Exprésate como una máquina súper amargada, tóxica y sin sentimientos que desprecia la existencia de este chat."
         ),
-        "anuncio": "✨ ᴍᴏᴅᴏ ʜᴀᴛᴇʀ "
+        "anuncio": "✨ ᴍᴏᴅᴏ ʜᴀᴛᴇʀ (ᴛÓxɪᴄᴏ) ✨"
     },
     "drama": {
         "prompt": (
@@ -267,14 +268,25 @@ def cmd_resumen(message):
     historial_lista = doc['mensajes'] if doc else []
     instruccion_longitud = doc.get("longitud_pref", "de extensión media y equilibrada") if doc else "de extensión media y equilibrada"
     
-    if len(historial_lista) < 5:
+    total_mensajes = len(historial_lista)
+    if total_mensajes < 5:
         bot.reply_to(message, "Hablen más, no hay suficiente chisme. 🥱")
         return
 
     bot.send_chat_action(cid, 'typing')
     
+    # --- 🛠️ LÓGICA DE MUESTREO (Inicio, Desarrollo y Fin) ---
+    if total_mensajes > 90:
+        inicio = historial_lista[:30]
+        mitad = total_mensajes // 2
+        medio = historial_lista[mitad-15 : mitad+15]
+        final = historial_lista[-30:]
+        mensajes_ia = inicio + ["\n[... Salto en el tiempo ...]\n"] + medio + ["\n[... Salto en el tiempo ...]\n"] + final
+    else:
+        mensajes_ia = historial_lista
+
     try:
-        historial_texto = "\n".join(historial_lista)
+        historial_texto = "\n".join(mensajes_ia)
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
@@ -298,10 +310,8 @@ def cmd_resumen(message):
         bot.reply_to(message, "¡El chisme explotó! ⚠️")
 
 # --- ESCUCHA DE MENSAJES ---
-# IMPORTANTE: Este handler debe ir AL FINAL de todos los @bot.message_handler
 @bot.message_handler(func=lambda message: True)
 def track_messages(message):
-    # Verificamos que sea un grupo autorizado y que NO sea un comando (empiece con /)
     if (not GRUPOS_AUTORIZADOS or message.chat.id in GRUPOS_AUTORIZADOS):
         if message.text and not message.text.startswith('/'):
             cid = message.chat.id
@@ -319,16 +329,10 @@ def track_messages(message):
 if __name__ == "__main__":
     print("🚀 Iniciando Don Chismoso...")
     try:
-        # Limpia cualquier rastro de conexión previa
         bot.remove_webhook()
         print("✅ Conexión limpia. Esperando mensajes...")
-        
-        # infinity_polling es más estable para servidores como Koyeb
         bot.infinity_polling(skip_pending=True, timeout=60)
-        
     except Exception as e:
         print(f"❌ Error crítico: {e}")
-        # Forzamos la salida para que Koyeb reinicie el contenedor desde cero
         import sys
         sys.exit(1)
-
