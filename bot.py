@@ -222,7 +222,7 @@ def cmd_resumen(message):
                     f"EXTENSIÓN: {instruccion_longitud}. "
                     "REGLAS OBLIGATORIAS:\n"
                     "1. VE COMENTANDO e interviniendo con tu opinión MIENTRAS resumes los sucesos.\n"
-                    "2. EMOJIS INTELIGENTES: Integra emojis que encajen con tu personalidad y el contexto del mensaje en CADA frase o párrafo.\n"
+                    "2. OBLIGATORIO: Debes saturar el texto con emojis temáticos. No escribas ninguna frase que no tenga al menos un emoji inteligente.\n"
                     "3. Usa ÚNICAMENTE nombres reales (en *Negrita*).\n"
                     "4. Primera línea DEBE ser '📌 *Estado del chat:*' + frase creativa con emojis."
                 )},
