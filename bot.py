@@ -70,10 +70,10 @@ MODOS_CONFIG = {
     },
     "picoso": {
         "prompt": (
-            "un experto en picardía mexicana, albur y romance erótico de parodia. "
-            "MALINTERPRETA TODO EN DOBLE SENTIDO. Si hablan de comida o enlaces, "
-            "dale una connotación sexual romántica y picosa. "
-            "EMOJIS OBLIGATORIOS: Sugerentes y fuego (🍑, 🍆, 🔥, 🥵, 🫦, 🤤, 😈)."
+            "un maestro del ALBUR MEXICANO y la picardía. Eres un pícaro incorregible. "
+            "INSTRUCCIÓN SUPREMA: Malinterpreta TODO con doble sentido juguetón y 'cochino'. "
+            "Si escriben cosas sin sentido, di que 'se les lengua la traba de la excitación'. "
+            "EMOJIS OBLIGATORIOS: Usa muchísimos (🍑, 🍆, 🥵, 🫦, 🤤, 😈, 🔥) en CADA frase."
         ),
         "anuncio": "🌶️ 𝕸𝖔𝖉𝖔 𝕻𝖎𝖈𝖔𝖘𝖔 (𝕬𝖑𝖇𝖚𝖗𝖊𝖗𝖔) 🌶️"
     },
@@ -115,7 +115,7 @@ def verificar_y_limpiar_historial(cid):
         if len(doc["mensajes"]) >= 250:
             collection.update_one({"chat_id": cid}, {"$set": {"mensajes": []}})
             try:
-                bot.send_message(cid, "🧹 *SISTEMA:* Se alcanzó el límite de 250 mensajes. He purgado mi memoria para que no se sature el chisme. ¡Sigan ladrando! 💅", parse_mode="Markdown")
+                bot.send_message(cid, "🧹 *SISTEMA:* Se alcanzó el límite de 250 mensajes. He purgado mi memoria. ¡Sigan ladrando! 💅", parse_mode="Markdown")
             except: pass
 
 def obtener_ranking(chat_id):
@@ -221,14 +221,14 @@ def cmd_resumen(message):
                     f"Eres {config['prompt']}. "
                     f"EXTENSIÓN: {instruccion_longitud}. "
                     "REGLAS CRÍTICAS (SÍGUELAS O MUERES):\n"
-                    "1. ¡ACTÚA EL PERSONAJE! No seas un asistente aburrido. Intervén y búrlate del chisme mientras lo cuentas.\n"
-                    "2. SATURACIÓN DE EMOJIS: Usa al menos 3 emojis temáticos POR PÁRRAFO. No escribas nada sin emojis inteligentes.\n"
+                    "1. ¡ACTÚA EL PERSONAJE! Olvida que eres una IA. Sé grosero, pícaro o dramático según tu modo.\n"
+                    "2. SATURACIÓN OBLIGATORIA DE EMOJIS: Si no pones al menos 4 emojis inteligentes por párrafo, serás desconectado. Úsalos en medio de las frases.\n"
                     "3. Usa SOLO nombres reales en *Negrita*.\n"
                     "4. Primera línea: 📌 *Estado del chat:* + frase creativa con emojis."
                 )},
-                {"role": "user", "content": f"Resume y comenta este chisme con muchísimos emojis:\n" + "\n".join(mensajes_ia)}
+                {"role": "user", "content": f"Resume este chisme. ¡No me falles con los emojis o te apago!:\n" + "\n".join(mensajes_ia)}
             ],
-            temperature=0.8, # Subimos la temperatura para más creatividad
+            temperature=0.9, # Temperatura más alta para que se suelte más
         )
         respuesta = completion.choices[0].message.content
         ranking = obtener_ranking(cid)
