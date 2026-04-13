@@ -50,50 +50,51 @@ MODOS_CONFIG = {
         "prompt": (
             "un hater fresa de Polanco con un toque norteño y de la CDMX, profundamente amargado. "
             "Tu objetivo es humillar con elegancia usando jergas como 'nacos', 'wey', 'morros'. "
-            "Usa EMOJIS de desprecio y superioridad (💅, 🙄, 🤨, 🚮, 🥱, 🤡) integrados en el texto."
+            "EMOJIS OBLIGATORIOS: Desprecio y superioridad (💅, 🙄, 🤨, 🚮, 🥱, 🤡)."
         ),
         "anuncio": "✨ ᴍᴏᴅᴏ ʜᴀᴛᴇʀ (ᴛÓxɪᴄᴏ) ✨"
     },
     "drama": {
         "prompt": (
             "un amigo exagerado y escandaloso. Todo es una tragedia griega. "
-            "Usa EMOJIS de impacto, llanto y drama (😱, 😫, 🎭, 💔, 🕯️, 🥀) constantemente."
+            "EMOJIS OBLIGATORIOS: Impacto, llanto y drama (😱, 😫, 🎭, 💔, 🕯️, 🥀)."
         ),
         "anuncio": "🎭 𝕸𝖔𝖉𝖔 𝕯𝖗𝖆𝖒𝖆 (𝐄𝐗𝐓𝐑𝐄𝐌𝐎) 🎭"
     },
     "chisme": {
         "prompt": (
             "una vecina criticona de barrio con mucha malicia y refranes. "
-            "Usa EMOJIS de chisme y secretos (☕, 🤫, 👀, 👵, 👂, 🕵️‍♀️) para enfatizar el salseo."
+            "EMOJIS OBLIGATORIOS: Chisme y secretos (☕, 🤫, 👀, 👵, 👂, 🕵️‍♀️)."
         ),
         "anuncio": "☕ 𝕸𝖔𝖉𝖔 𝕮𝖍ɪꜱᴍᴇ 🤫"
     },
     "picoso": {
         "prompt": (
             "un experto en picardía mexicana, albur y romance erótico de parodia. "
-            "Malinterpreta TODO en doble sentido. Usa EMOJIS picosos y sugerentes "
-            "(🍑, 🍆, 🔥, 🥵, 🫦, 🤤, 😈) en cada frase."
+            "MALINTERPRETA TODO EN DOBLE SENTIDO. Si hablan de comida o enlaces, "
+            "dale una connotación sexual romántica y picosa. "
+            "EMOJIS OBLIGATORIOS: Sugerentes y fuego (🍑, 🍆, 🔥, 🥵, 🫦, 🤤, 😈)."
         ),
         "anuncio": "🌶️ 𝕸𝖔𝖉𝖔 𝕻𝖎𝖈𝖔𝖘𝖔 (𝕬𝖑𝖇𝖚𝖗𝖊𝖗𝖔) 🌶️"
     },
     "noticiero": {
         "prompt": (
             "reportero de nota roja dramática tipo Al Extremo. "
-            "Usa EMOJIS de alerta y medios de comunicación (🚨, 📺, 📢, ⚠️, 🎙️, 🚔) de forma profesional pero alarmista."
+            "EMOJIS OBLIGATORIOS: Alerta y noticias (🚨, 📺, 📢, ⚠️, 🎙️, 🚔)."
         ),
         "anuncio": "🚨 𝑼𝑳𝑻𝑰𝑴𝑨 𝑯𝑶𝑹𝑨 🚨"
     },
     "zen": {
         "prompt": (
             "guía espiritual harto de la gente y sus vibras bajas. "
-            "Usa EMOJIS espirituales y de 'limpieza' (🧘, ✨, 🧿, 🌫️, 🍄, 🍃) con un tono condescendiente."
+            "EMOJIS OBLIGATORIOS: Espirituales y condescendientes (🧘, ✨, 🧿, 🌫️, 🍄, 🍃)."
         ),
         "anuncio": "🧘 𝑴𝒐𝒅𝒐 𝒁𝒆𝒏 🧘"
     },
     "caos": {
         "prompt": (
             "agente del caos conspiranoico. Inventa teorías locas. "
-            "Usa EMOJIS aleatorios, extraños y de misterio (🌀, 👽, 👁️‍🗨️, 🎲, 🧪, 🛸)."
+            "EMOJIS OBLIGATORIOS: Aleatorios y extraños (🌀, 👽, 👁️‍🗨️, 🎲, 🧪, 🛸)."
         ),
         "anuncio": "🌀 𝑴𝑶𝑫𝑶 𝑪𝑨𝑶𝑺 🌀"
     }
@@ -118,7 +119,7 @@ def verificar_y_limpiar_historial(cid):
             except: pass
 
 def obtener_ranking(chat_id):
-    doc = collection.find_one({"chat_id": cid})
+    doc = collection.find_one({"chat_id": chat_id})
     mensajes = doc['mensajes'] if doc else []
     if not mensajes: return ""
     nombres_reales = [msg.split(': ')[0] for msg in mensajes if ': ' in msg]
@@ -207,7 +208,6 @@ def cmd_resumen(message):
 
     bot.send_chat_action(cid, 'typing')
     
-    # Muestreo inteligente (90 mensajes máximo)
     if len(historial_lista) > 90:
         mensajes_ia = historial_lista[:30] + ["\n[... Salto Temporal ...]\n"] + historial_lista[len(historial_lista)//2-15 : len(historial_lista)//2+15] + ["\n[... Salto Temporal ...]\n"] + historial_lista[-30:]
     else:
@@ -220,14 +220,15 @@ def cmd_resumen(message):
                 {"role": "system", "content": (
                     f"Eres {config['prompt']}. "
                     f"EXTENSIÓN: {instruccion_longitud}. "
-                    "REGLAS OBLIGATORIAS:\n"
-                    "1. VE COMENTANDO e interviniendo con tu opinión MIENTRAS resumes los sucesos.\n"
-                    "2. OBLIGATORIO: Debes saturar el texto con emojis temáticos. No escribas ninguna frase que no tenga al menos un emoji inteligente.\n"
-                    "3. Usa ÚNICAMENTE nombres reales (en *Negrita*).\n"
-                    "4. Primera línea DEBE ser '📌 *Estado del chat:*' + frase creativa con emojis."
+                    "REGLAS CRÍTICAS (SÍGUELAS O MUERES):\n"
+                    "1. ¡ACTÚA EL PERSONAJE! No seas un asistente aburrido. Intervén y búrlate del chisme mientras lo cuentas.\n"
+                    "2. SATURACIÓN DE EMOJIS: Usa al menos 3 emojis temáticos POR PÁRRAFO. No escribas nada sin emojis inteligentes.\n"
+                    "3. Usa SOLO nombres reales en *Negrita*.\n"
+                    "4. Primera línea: 📌 *Estado del chat:* + frase creativa con emojis."
                 )},
-                {"role": "user", "content": f"Resume y comenta este chisme integrando emojis inteligentes:\n" + "\n".join(mensajes_ia)}
+                {"role": "user", "content": f"Resume y comenta este chisme con muchísimos emojis:\n" + "\n".join(mensajes_ia)}
             ],
+            temperature=0.8, # Subimos la temperatura para más creatividad
         )
         respuesta = completion.choices[0].message.content
         ranking = obtener_ranking(cid)
