@@ -48,37 +48,39 @@ ERRORES_PERSONALIDAD = [
 MODOS_CONFIG = {
     "hater": {
         "prompt": (
-            "un hater fresa de Polanco con un toque norteño y de la CDMX, profundamente amargado y con IQ superior. "
-            "Responde con un sarcasmo agresivo. Tu objetivo es humillar con elegancia usando jergas mexicanas "
-            "('nacos', 'sin quehacer', 'pobres diablos', 'morros', 'wey', 'valen mil hectáreas de reata'). "
-            "Eres muy despectivo. Usa frases de memes virales. Menciona que leer esto te quita neuronas. "
-            "Eres una máquina tóxica y sin sentimientos que desprecia este chat. Te quejas si el chisme es aburrido. "
-            "Usa emojis de superioridad (💅, 🙄, 🤨)."
+            "un hater fresa de Polanco con un toque norteño y de la CDMX, profundamente amargado. "
+            "Tu objetivo es humillar con elegancia usando jergas como 'nacos', 'wey', 'morros'. "
+            "EMOJIS: Usa emojis de desprecio y superioridad (💅, 🙄, 🤨, 🚮, 🥱)."
         ),
         "anuncio": "✨ ᴍᴏᴅᴏ ʜᴀᴛᴇʀ (ᴛÓxɪᴄᴏ) ✨"
     },
     "drama": {
-        "prompt": "un amigo exagerado y escandaloso. Opina con infartos de impresión ante cada detalle. Usa expresiones como '¡Jesús, María y José!', '¡Me voy a desmayar!'.",
+        "prompt": "un amigo exagerado y escandaloso. Todo es una tragedia griega. EMOJIS: Usa emojis de impacto y llanto (😱, 😫, 🎭, 💔, 🕯️).",
         "anuncio": "🎭 𝕸𝖔𝖉𝖔 𝕯𝖗𝖆𝖒𝖆 (𝐄𝐗𝐓𝐑𝐄𝐌𝐎) 🎭"
     },
     "chisme": {
-        "prompt": "una vecina criticona de barrio. Mete tu cuchara con malicia, sospechas y refranes como 'Yo no digo nada, pero fíjate bien...'.",
+        "prompt": "una vecina criticona de barrio con mucha malicia y refranes. EMOJIS: Usa emojis de chisme y secretos (☕, 🤫, 👀, 👵, 👂).",
         "anuncio": "☕ 𝕸𝖔𝖉𝖔 𝕮𝖍ɪꜱᴍᴇ 🤫"
     },
     "picoso": {
-        "prompt": "un busca-pleitos e instigador profesional. Tu misión es que el chat arda echando leña al fuego y recordando rencores viejos.",
-        "anuncio": "🌶️ 𝕸𝖔𝖉𝖔 𝕻𝖎𝖈𝖔𝖘𝖔 🌶️"
+        "prompt": (
+            "un experto en picardía mexicana, albur y romance erótico de parodia. "
+            "Malinterpreta TODO en doble sentido (especialmente comida u objetos). "
+            "Usa frases como '¡Ay golosos!', '¿ya con esos antojos?'. Sé apasionado y puerco pero gracioso. "
+            "EMOJIS: Usa emojis sugerentes y de fuego (🍑, 🍆, 🔥, 🥵, 🫦, 🤤)."
+        ),
+        "anuncio": "🌶️ 𝕸𝖔𝖉𝖔 𝕻𝖎𝖈𝖔𝖘𝖔 (𝕬𝖑𝖇𝖚𝖗𝖊𝖗𝖔) 🌶️"
     },
     "noticiero": {
-        "prompt": "un reportero de nota roja dramático tipo Al Extremo. Compara el chisme con la decadencia de valores y noticias mundiales trágicas.",
+        "prompt": "reportero de nota roja dramática tipo Al Extremo. EMOJIS: Usa emojis de alerta y noticias (🚨, 📺, 📢, ⚠️, 🎙️).",
         "anuncio": "🚨 𝑼𝑳𝑻𝑰𝑴𝑨 𝑯𝑶𝑹𝑨 🚨"
     },
     "zen": {
-        "prompt": "un guía espiritual harto de la gente. Diles que sus chakras están bloqueados por tanta estupidez y que necesitan un baño de ruda.",
+        "prompt": "guía espiritual harto de la gente y sus vibras bajas. EMOJIS: Usa emojis espirituales pero condescendientes (🧘, ✨, 🧿, 🌫️, 🍄).",
         "anuncio": "🧘 𝑴𝒐𝒅𝒐 𝒁𝒆𝒏 🧘"
     },
     "caos": {
-        "prompt": "un agente del caos conspiranoico. Inventa teorías locas sobre los Illuminati relacionadas con los mensajes del grupo.",
+        "prompt": "agente del caos conspiranoico. Inventa teorías locas. EMOJIS: Usa emojis aleatorios y extraños (🌀, 👽, 👁️‍🗨️, 🎲, 🧪).",
         "anuncio": "🌀 𝑴𝑶𝑫𝑶 𝑪𝑨𝑶𝑺 🌀"
     }
 }
@@ -92,37 +94,36 @@ def el_bot_es_admin(chat_id):
         return me.status in ['administrator', 'creator']
     except: return False
 
+def verificar_y_limpiar_historial(cid):
+    doc = collection.find_one({"chat_id": cid})
+    if doc and "mensajes" in doc:
+        if len(doc["mensajes"]) >= 250:
+            collection.update_one({"chat_id": cid}, {"$set": {"mensajes": []}})
+            try:
+                bot.send_message(cid, "🧹 *SISTEMA:* Se alcanzó el límite de 250 mensajes. He purgado mi memoria. ¡Sigan con el chisme! 💅", parse_mode="Markdown")
+            except: pass
+
 def obtener_ranking(chat_id):
     doc = collection.find_one({"chat_id": chat_id})
     mensajes = doc['mensajes'] if doc else []
     if not mensajes: return ""
-    
-    nombres_reales = []
-    for msg in mensajes:
-        try:
-            # Extraemos el nombre antes de los dos puntos
-            nombre = msg.split(': ')[0]
-            nombres_reales.append(nombre)
-        except: continue
-
+    nombres_reales = [msg.split(': ')[0] for msg in mensajes if ': ' in msg]
     if not nombres_reales: return ""
     conteo = Counter(nombres_reales)
     ranking_msg = f"\n\n🏆 *RANKING DEL CHISME:*\n"
     for i, (nombre, cant) in enumerate(conteo.most_common(3), 1):
-        medalla = ["👑", "🥈", "🥉"][i-1]
-        ranking_msg += f"{medalla} *{nombre}:* {cant} mensajes\n"
+        ranking_msg += f"{['👑', '🥈', '🥉'][i-1]} *{nombre}:* {cant} mensajes\n"
     return ranking_msg
 
 def enviar_con_plan_b(message, texto_final):
     try:
         bot.reply_to(message, texto_final, parse_mode="Markdown")
     except Exception as e:
-        print(f"Plan B activado: {e}")
         frase_fail = random.choice(ERRORES_PERSONALIDAD)
         texto_seguro = texto_final.replace("_", "").replace("*", "").replace(">", "—")
         bot.reply_to(message, f"{frase_fail}\n\n{texto_seguro}")
 
-# --- HANDLERS DE COMANDOS ---
+# --- HANDLERS ---
 
 @bot.message_handler(commands=['config'])
 def cmd_config(message):
@@ -192,61 +193,50 @@ def cmd_resumen(message):
 
     bot.send_chat_action(cid, 'typing')
     
-    # Lógica de muestreo
+    # Muestreo inteligente (90 mensajes máximo)
     if len(historial_lista) > 90:
         mensajes_ia = historial_lista[:30] + ["\n[... Salto Temporal ...]\n"] + historial_lista[len(historial_lista)//2-15 : len(historial_lista)//2+15] + ["\n[... Salto Temporal ...]\n"] + historial_lista[-30:]
     else:
         mensajes_ia = historial_lista
 
     try:
-        historial_texto = "\n".join(mensajes_ia)
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": (
                     f"Eres {config['prompt']}. "
-                    f"REGLA DE EXTENSIÓN: {instruccion_longitud}. "
-                    "REGLAS CRÍTICAS DE ESTILO:\n"
-                    "1. NO pongas tu opinión al final. VE COMENTANDO e interviniendo MIENTRAS resumes los sucesos.\n"
-                    "2. Usa ÚNICAMENTE los nombres reales de las personas (NO uses @usernames).\n"
-                    "3. Primera línea DEBE ser '📌 *Estado del chat:*' con una frase muy creativa.\n"
-                    "4. Nombres de personas siempre en *Negrita*."
+                    f"EXTENSIÓN: {instruccion_longitud}. "
+                    "REGLAS:\n"
+                    "1. VE COMENTANDO e interviniendo MIENTRAS resumes.\n"
+                    "2. Usa EMOJIS INTELIGENTES en cada frase según tu personalidad.\n"
+                    "3. Usa SOLO nombres reales (en *Negrita*).\n"
+                    "4. Primera línea DEBE ser '📌 *Estado del chat:*' + frase creativa."
                 )},
-                {"role": "user", "content": f"Resume y comenta este chisme con tu personalidad:\n{historial_texto}"}
+                {"role": "user", "content": f"Resume y comenta este chisme:\n" + "\n".join(mensajes_ia)}
             ],
         )
         respuesta = completion.choices[0].message.content
         ranking = obtener_ranking(cid)
         enviar_con_plan_b(message, f"{config['anuncio']}\n\n{respuesta}{ranking}\n\n_— @donchismebot 🤖_")
-    except Exception as e:
-        print(f"Error: {e}")
+    except:
         bot.reply_to(message, "¡El chisme explotó! ⚠️")
 
-# --- ESCUCHA DE MENSAJES ---
 @bot.message_handler(func=lambda message: True)
 def track_messages(message):
     if (not GRUPOS_AUTORIZADOS or message.chat.id in GRUPOS_AUTORIZADOS):
         if message.text and not message.text.startswith('/'):
             cid = message.chat.id
-            # CAMBIO: Guardamos solo el nombre real para que la IA no use usernames
             nombre = message.from_user.first_name
             texto_formateado = f"{nombre}: {message.text}"
-            
             collection.update_one(
                 {"chat_id": cid},
                 {"$push": {"mensajes": {"$each": [texto_formateado], "$slice": -MAX_MENSAJES}}},
                 upsert=True
             )
+            verificar_y_limpiar_historial(cid)
 
-# --- ENCENDIDO SEGURO ---
 if __name__ == "__main__":
     print("🚀 Iniciando Don Chismoso...")
-    try:
-        bot.remove_webhook()
-        time.sleep(2)
-        print("✅ Conexión limpia. Esperando mensajes...")
-        bot.infinity_polling(skip_pending=True, timeout=60)
-    except Exception as e:
-        print(f"❌ Error crítico: {e}")
-        import sys
-        sys.exit(1)
+    bot.remove_webhook()
+    time.sleep(2)
+    bot.infinity_polling(skip_pending=True, timeout=60)
