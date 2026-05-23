@@ -75,7 +75,7 @@ MODOS_CONFIG = {
             "Si escriben cosas sin sentido, di que 'se les lengua la traba de la excitación'. "
             "EMOJIS OBLIGATORIOS: Usa muchísimos (🍑, 🍆, 🥵, 🫦, 🤤, 😈, 🔥) en CADA frase."
         ),
-        "anuncio": "🌶️ 𝕸𝖔𝖉𝖔 𝕻𝖎𝖈𝖔𝖘𝖔 (𝕬𝖑𝖇𝖚𝖗𝖊𝖗𝖔) 🌶️"
+        "anuncio": "🌶️ 𝕸𝖔𝖉𝖔 𝕻𝖎𝖈𝖔𝖘oso (𝕬𝖑𝖇𝖚𝖗𝖊𝖗𝖔) 🌶️"
     },
     "noticiero": {
         "prompt": (
@@ -138,6 +138,11 @@ def enviar_con_plan_b(message, texto_final):
         texto_seguro = texto_final.replace("_", "").replace("*", "").replace(">", "—")
         bot.reply_to(message, f"{frase_fail}\n\n{texto_seguro}")
 
+def limpiar_nombre_pack(texto):
+    if "addstickers/" in texto:
+        return texto.split("addstickers/")[-1].strip()
+    return texto.strip()
+
 # --- HANDLERS ---
 
 @bot.message_handler(commands=['config'])
@@ -173,7 +178,11 @@ def callback_actualizar_pref(call):
 def send_help(message):
     saludo_aleatorio = random.choice(FRASES_BIENVENIDA)
     msg = f"✨ *{saludo_aleatorio}* ✨\n\n"
-    msg += "📌 *COMANDOS:*\n• `/chisme`, `/hater`, `/picoso`, `/noticiero`, `/drama`, `/zen`, `/caos`.\n"
+    msg += "📌 *COMANDOS DISPONIBLES:*\n• `/chisme`, `/hater`, `/picoso`, `/noticiero`, `/drama`, `/zen`, `/caos`.\n\n"
+    msg += "⚙️ *CONFIGURACIÓN DE STICKERS (Solo Admins):*\n"
+    msg += "• `/addpack [nombre_o_link]` - Añade un pack de stickers.\n"
+    msg += "• `/delpack [nombre_o_link]` - Elimina un pack.\n"
+    msg += "• `/verpacks` - Muestra los packs agregados en este grupo.\n\n"
     msg += "• `/config` para ajustar longitud.\n• `/restart` para borrar memoria."
     bot.reply_to(message, msg, parse_mode="Markdown")
 
@@ -181,8 +190,65 @@ def send_help(message):
 def cmd_restart(message):
     cid = message.chat.id
     if not el_bot_es_admin(cid): return
-    collection.update_one({"chat_id": cid}, {"$set": {"mensajes": []}})
-    bot.reply_to(message, "✨ *MEMORIA PURGADA* ✨", parse_mode="Markdown")
+    meta_aleatoria = random.randint(80, 120)
+    collection.update_one(
+        {"chat_id": cid}, 
+        {"$set": {"mensajes": [], "sticker_counter": 0, "sticker_target": meta_aleatoria}}
+    )
+    bot.reply_to(message, "✨ *MEMORIA PURGADA Y CONTADORES REINICIADOS* ✨", parse_mode="Markdown")
+
+# --- NUEVOS HANDLERS PARA GESTIÓN DE STICKERS ---
+
+@bot.message_handler(commands=['addpack'])
+def cmd_add_pack(message):
+    cid = message.chat.id
+    if not el_bot_es_admin(cid): return
+    args = message.text.split(maxsplit=1)
+    if len(args) < 2:
+        bot.reply_to(message, "❌ *Error:* Debes incluir el nombre o link del pack.\nEjemplo: `/addpack NombreDelPack`", parse_mode="Markdown")
+        return
+    
+    pack_name = limpiar_nombre_pack(args[1])
+    
+    try:
+        sticker_set = bot.get_sticker_set(pack_name)
+        if not sticker_set or not sticker_set.stickers:
+            raise Exception("Pack vacío o inválido")
+    except Exception as e:
+        bot.reply_to(message, f"❌ *Error:* No encontré ese pack de stickers en Telegram. Revisa el nombre.", parse_mode="Markdown")
+        return
+
+    collection.update_one({"chat_id": cid}, {"$addToSet": {"sticker_packs": pack_name}}, upsert=True)
+    bot.reply_to(message, f"✅ ¡Pack *{pack_name}* agregado con éxito! Reaccionaré con sus stickers cada 80-120 mensajes. 🎉", parse_mode="Markdown")
+
+@bot.message_handler(commands=['delpack'])
+def cmd_del_pack(message):
+    cid = message.chat.id
+    if not el_bot_es_admin(cid): return
+    args = message.text.split(maxsplit=1)
+    if len(args) < 2:
+        bot.reply_to(message, "❌ *Error:* Especifica el pack a eliminar.\nEjemplo: `/delpack NombreDelPack`", parse_mode="Markdown")
+        return
+    
+    pack_name = limpiar_nombre_pack(args[1])
+    collection.update_one({"chat_id": cid}, {"$pull": {"sticker_packs": pack_name}})
+    bot.reply_to(message, f"🗑️ El pack *{pack_name}* fue eliminado de la configuración.", parse_mode="Markdown")
+
+@bot.message_handler(commands=['verpacks'])
+def cmd_ver_packs(message):
+    cid = message.chat.id
+    doc = collection.find_one({"chat_id": cid})
+    packs = doc.get("sticker_packs", []) if doc else []
+    if not packs:
+        bot.reply_to(message, "⚠️ No hay packs de stickers registrados en este grupo. ¡Agrega uno con `/addpack`!", parse_mode="Markdown")
+        return
+    
+    msg = "📂 *Packs de stickers activos en este grupo:*\n"
+    for p in packs:
+        msg += f"• `{p}` (https://t.me/addstickers/{p})\n"
+    bot.reply_to(message, msg, parse_mode="Markdown", disable_web_page_preview=True)
+
+# --- FIN HANDLERS STICKERS ---
 
 @bot.message_handler(commands=['resumen', 'hater', 'picoso', 'chisme', 'noticiero', 'drama', 'zen', 'caos'])
 def cmd_resumen(message):
@@ -228,7 +294,7 @@ def cmd_resumen(message):
                 )},
                 {"role": "user", "content": f"Resume este chisme. ¡No me falles con los emojis o te apago!:\n" + "\n".join(mensajes_ia)}
             ],
-            temperature=0.9, # Temperatura más alta para que se suelte más
+            temperature=0.9,
         )
         respuesta = completion.choices[0].message.content
         ranking = obtener_ranking(cid)
@@ -243,9 +309,37 @@ def track_messages(message):
             cid = message.chat.id
             nombre = message.from_user.first_name
             texto_formateado = f"{nombre}: {message.text}"
+            
+            # --- SISTEMA AUTOMÁTICO DE STICKERS ---
+            doc = collection.find_one({"chat_id": cid}) or {}
+            
+            # Recuperar contadores o inicializarlos si es un chat nuevo
+            contador_actual = doc.get("sticker_counter", 0) + 1
+            meta_objetivo = doc.get("sticker_target", random.randint(80, 120))
+            packs = doc.get("sticker_packs", [])
+            
+            if contador_actual >= meta_objetivo:
+                if packs:
+                    try:
+                        pack_elegido = random.choice(packs)
+                        sticker_set = bot.get_sticker_set(pack_elegido)
+                        if sticker_set and sticker_set.stickers:
+                            sticker_elegido = random.choice(sticker_set.stickers)
+                            bot.send_sticker(cid, sticker_elegido.file_id)
+                    except Exception as e:
+                        print(f"Error enviando sticker: {e}")
+                
+                # Resetear contador y definir nueva meta aleatoria para el próximo ciclo
+                contador_actual = 0
+                meta_objetivo = random.randint(80, 120)
+
+            # Actualizar historial y variables de stickers de una sola vez
             collection.update_one(
                 {"chat_id": cid},
-                {"$push": {"mensajes": {"$each": [texto_formateado], "$slice": -MAX_MENSAJES}}},
+                {
+                    "$push": {"mensajes": {"$each": [texto_formateado], "$slice": -MAX_MENSAJES}},
+                    "$set": {"sticker_counter": contador_actual, "sticker_target": meta_objetivo}
+                },
                 upsert=True
             )
             verificar_y_limpiar_historial(cid)
