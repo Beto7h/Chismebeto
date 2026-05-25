@@ -75,7 +75,7 @@ MODOS_CONFIG = {
             "Si escriben cosas sin sentido, di que 'se les lengua la traba de la excitación'. "
             "EMOJIS OBLIGATORIOS: Usa muchísimos (🍑, 🍆, 🥵, 🫦, 🤤, 😈, 🔥) en CADA frase."
         ),
-        "anuncio": "🌶️ 𝕸𝖔𝖉𝖔 𝕻𝖎𝖈𝖔𝖘𝖔 (𝕬𝖑𝖇𝖚𝖗𝖊𝖗𝖔) 🌶️"
+        "anuncio": "🌶️ 𝕸𝖔𝖉𝖔 𝕻𝖎𝖈𝖔𝖘oso (𝕬𝖑𝖇𝖚𝖗𝖊𝖗𝖔) 🌶️"
     },
     "noticiero": {
         "prompt": (
@@ -182,7 +182,7 @@ def send_help(message):
     msg += "⚙️ *CONFIGURACIÓN DE STICKERS (Solo Admins):*\n"
     msg += "• `/addpack [nombre_o_link]` - Añade un pack.\n"
     msg += "• `/delpack [nombre_o_link]` - Elimina un pack.\n"
-    msg += "• `/verpacks` - Muestra los packs activos.\n"
+    msg += "• `/verpacks` - Muestra los packs activos (Público).\n"
     msg += "• `/configstickers [min] [max]` - Cambia el rango de mensajes (Ej: `/configstickers 20 50`).\n\n"
     msg += "• `/config` para ajustar longitud.\n• `/restart` para borrar memoria."
     bot.reply_to(message, msg, parse_mode="Markdown")
@@ -224,7 +224,12 @@ def cmd_add_pack(message):
         bot.reply_to(message, f"❌ *Error:* No encontré ese pack de stickers en Telegram. Revisa el nombre.", parse_mode="Markdown")
         return
 
-    collection.update_one({"chat_id": cid}, {"$addToSet": {"sticker_packs": pack_name}}, upsert=True)
+    # Corrección: Aseguramos explícitamente la creación y anexado seguro de múltiples elementos en un Array nativo
+    collection.update_one(
+        {"chat_id": cid}, 
+        {"$addToSet": {"sticker_packs": pack_name}}, 
+        upsert=True
+    )
     bot.reply_to(message, f"✅ ¡Pack *{pack_name}* agregado con éxito! 🎉", parse_mode="Markdown")
 
 @bot.message_handler(commands=['delpack'])
@@ -243,13 +248,21 @@ def cmd_del_pack(message):
 @bot.message_handler(commands=['verpacks'])
 def cmd_ver_packs(message):
     cid = message.chat.id
+    # MEJORA: Removida restricción de admin para hacerlo público al 100%
     doc = collection.find_one({"chat_id": cid})
-    packs = doc.get("sticker_packs", []) if doc else []
+    raw_packs = doc.get("sticker_packs", []) if doc else []
+    
+    # MEJORA: Sanitización de datos crudos de MongoDB a listas estructuradas de Python
+    if raw_packs and isinstance(raw_packs, list):
+        packs = [str(p).strip() for p in raw_packs if p]
+    else:
+        packs = []
+        
     if not packs:
-        bot.reply_to(message, "⚠️ No hay packs de stickers registrados en este grupo. ¡Agrega uno con `/addpack`!", parse_mode="Markdown")
+        bot.reply_to(message, "⚠️ No hay packs de stickers registrados en este grupo. ¡Pídele a un admin que agregue uno con `/addpack`!", parse_mode="Markdown")
         return
     
-    msg = "📂 *Packs de stickers activos en este grupo:*\n"
+    msg = f"📂 *Packs de stickers activos en este grupo ({len(packs)}):*\n"
     for p in packs:
         msg += f"• `{p}` (https://t.me/addstickers/{p})\n"
     bot.reply_to(message, msg, parse_mode="Markdown", disable_web_page_preview=True)
@@ -340,7 +353,6 @@ def track_messages(message):
     if (not GRUPOS_AUTORIZADOS or message.chat.id in GRUPOS_AUTORIZADOS):
         cid = message.chat.id
         
-        # --- SISTEMA CORREGIDO: SE CUENTAN ABSOLUTAMENTE TODOS LOS MENSAJES DEL GRUPO ---
         doc = collection.find_one({"chat_id": cid}) or {}
         
         s_min = doc.get("sticker_min", 80)
@@ -352,7 +364,6 @@ def track_messages(message):
         
         if contador_actual >= meta_objetivo:
             if packs:
-                # CREAMOS UN POOL GLOBAL CON TODOS LOS STICKERS DE TODOS LOS PACKS DISPONIBLES
                 bolsa_de_stickers = []
                 for pack_name in packs:
                     try:
@@ -362,7 +373,6 @@ def track_messages(message):
                     except Exception as e:
                         print(f"Error cargando el pack {pack_name}: {e}")
                 
-                # SI ENCONTRAMOS STICKERS VALIDOS EN LA BOLSA, ENVIAMOS UNO COMPLETAMENTE AL AZAR
                 if bolsa_de_stickers:
                     try:
                         sticker_elegido = random.choice(bolsa_de_stickers)
@@ -370,11 +380,9 @@ def track_messages(message):
                     except Exception as e:
                         print(f"Error enviando sticker: {e}")
             
-            # EL CONTADOR ENTRA EN 0 DE INMEDIATO DESDE EL ÚLTIMO STICKER MANDADO
             contador_actual = 0
             meta_objetivo = random.randint(s_min, s_max)
 
-        # Si el mensaje contiene texto válido y no es un comando, lo añadimos al historial de chismes de la IA
         if message.text and not message.text.startswith('/'):
             nombre = message.from_user.first_name
             texto_formateado = f"{nombre}: {message.text}"
@@ -389,7 +397,6 @@ def track_messages(message):
             )
             verificar_y_limpiar_historial(cid)
         else:
-            # Si es un comando o multimedia, igual guardamos el progreso exacto del contador de stickers
             collection.update_one(
                 {"chat_id": cid},
                 {"$set": {"sticker_counter": contador_actual, "sticker_target": meta_objetivo}},
