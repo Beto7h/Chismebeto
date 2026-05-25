@@ -59,7 +59,7 @@ MODOS_CONFIG = {
             "un amigo exagerado y escandaloso. Todo es una tragedia griega. "
             "EMOJIS OBLIGATORIOS: Impacto, llanto y drama (😱, 😫, 🎭, 💔, 🕯️, 🥀)."
         ),
-        "anuncio": "🎭 𝕸𝖔𝖟𝖔 𝕯𝖗𝖆𝖒𝖆 (𝐄𝐗𝐓𝐑𝐄𝐌𝐎) 🎭"
+        "anuncio": "🎭 𝕸𝖔𝖉𝖔 𝕯𝖗𝖆𝖒𝖆 (𝐄𝐗𝐓𝐑𝐄𝐌𝐎) 🎭"
     },
     "chisme": {
         "prompt": (
@@ -75,7 +75,7 @@ MODOS_CONFIG = {
             "Si escriben cosas sin sentido, di que 'se les lengua la traba de la excitación'. "
             "EMOJIS OBLIGATORIOS: Usa muchísimos (🍑, 🍆, 🥵, 🫦, 🤤, 😈, 🔥) en CADA frase."
         ),
-        "anuncio": "🌶️ 𝕸𝖔𝖉𝖔 𝕻𝖎𝖈𝖔𝖘oso (𝕬𝖑𝖇𝖚𝖗𝖊𝖗𝖔) 🌶️"
+        "anuncio": "🌶️ 𝕸𝖔𝖉𝖔 𝕻𝖎𝖈𝖔𝖘𝖔 (𝕬𝖑𝖇𝖚𝖗𝖊𝖗𝖔) 🌶️"
     },
     "noticiero": {
         "prompt": (
@@ -183,7 +183,7 @@ def send_help(message):
     msg += "• `/addpack [nombre_o_link]` - Añade un pack.\n"
     msg += "• `/delpack [nombre_o_link]` - Elimina un pack.\n"
     msg += "• `/verpacks` - Muestra los packs activos.\n"
-    msg += "• `/configstickers [min] [max]` - Cambia el rango de mensajes (Ej: `/configstickers 40 80`).\n\n"
+    msg += "• `/configstickers [min] [max]` - Cambia el rango de mensajes (Ej: `/configstickers 20 50`).\n\n"
     msg += "• `/config` para ajustar longitud.\n• `/restart` para borrar memoria."
     bot.reply_to(message, msg, parse_mode="Markdown")
 
@@ -261,7 +261,7 @@ def cmd_config_stickers(message):
     args = message.text.split()
     
     if len(args) < 3:
-        bot.reply_to(message, "❌ *Error:* Formato incorrecto.\nUsa: `/configstickers [mínimo] [máximo]`\nEjemplo: `/configstickers 50 100`", parse_mode="Markdown")
+        bot.reply_to(message, "❌ *Error:* Formato incorrecto.\nUsa: `/configstickers [mínimo] [máximo]`\nEjemplo: `/configstickers 20 50`", parse_mode="Markdown")
         return
     
     try:
@@ -279,7 +279,7 @@ def cmd_config_stickers(message):
         {"$set": {"sticker_min": s_min, "sticker_max": s_max, "sticker_target": meta_aleatoria, "sticker_counter": 0}}, 
         upsert=True
     )
-    bot.reply_to(message, f"⚙️ *Configuración de Stickers Actualizada:*\n• Rango establecido: cada *{s_min}* a *{s_max}* mensajes.\n• Próximo sticker en: *{meta_aleatoria}* mensajes. 🎯", parse_mode="Markdown")
+    bot.reply_to(message, f"⚙️ *Configuración de Stickers Actualizada:*\n• Rango establecido: cada *{s_min}* a *{s_max}* mensajes.\n• Próximo sticker en exactamente: *{meta_aleatoria}* mensajes. 🎯", parse_mode="Markdown")
 
 # --- FIN HANDLERS STICKERS ---
 
@@ -338,37 +338,47 @@ def cmd_resumen(message):
 @bot.message_handler(func=lambda message: True)
 def track_messages(message):
     if (not GRUPOS_AUTORIZADOS or message.chat.id in GRUPOS_AUTORIZADOS):
+        cid = message.chat.id
+        
+        # --- SISTEMA CORREGIDO: SE CUENTAN ABSOLUTAMENTE TODOS LOS MENSAJES DEL GRUPO ---
+        doc = collection.find_one({"chat_id": cid}) or {}
+        
+        s_min = doc.get("sticker_min", 80)
+        s_max = doc.get("sticker_max", 120)
+        
+        contador_actual = doc.get("sticker_counter", 0) + 1
+        meta_objetivo = doc.get("sticker_target", random.randint(s_min, s_max))
+        packs = doc.get("sticker_packs", [])
+        
+        if contador_actual >= meta_objetivo:
+            if packs:
+                # CREAMOS UN POOL GLOBAL CON TODOS LOS STICKERS DE TODOS LOS PACKS DISPONIBLES
+                bolsa_de_stickers = []
+                for pack_name in packs:
+                    try:
+                        sticker_set = bot.get_sticker_set(pack_name)
+                        if sticker_set and sticker_set.stickers:
+                            bolsa_de_stickers.extend(sticker_set.stickers)
+                    except Exception as e:
+                        print(f"Error cargando el pack {pack_name}: {e}")
+                
+                # SI ENCONTRAMOS STICKERS VALIDOS EN LA BOLSA, ENVIAMOS UNO COMPLETAMENTE AL AZAR
+                if bolsa_de_stickers:
+                    try:
+                        sticker_elegido = random.choice(bolsa_de_stickers)
+                        bot.send_sticker(cid, sticker_elegido.file_id, reply_to_message_id=message.message_id)
+                    except Exception as e:
+                        print(f"Error enviando sticker: {e}")
+            
+            # EL CONTADOR ENTRA EN 0 DE INMEDIATO DESDE EL ÚLTIMO STICKER MANDADO
+            contador_actual = 0
+            meta_objetivo = random.randint(s_min, s_max)
+
+        # Si el mensaje contiene texto válido y no es un comando, lo añadimos al historial de chismes de la IA
         if message.text and not message.text.startswith('/'):
-            cid = message.chat.id
             nombre = message.from_user.first_name
             texto_formateado = f"{nombre}: {message.text}"
             
-            # --- SISTEMA AUTOMÁTICO DE STICKERS CON CITA ---
-            doc = collection.find_one({"chat_id": cid}) or {}
-            
-            s_min = doc.get("sticker_min", 80)
-            s_max = doc.get("sticker_max", 120)
-            
-            contador_actual = doc.get("sticker_counter", 0) + 1
-            meta_objetivo = doc.get("sticker_target", random.randint(s_min, s_max))
-            packs = doc.get("sticker_packs", [])
-            
-            if contador_actual >= meta_objetivo:
-                if packs:
-                    try:
-                        pack_elegido = random.choice(packs)
-                        sticker_set = bot.get_sticker_set(pack_elegido)
-                        if sticker_set and sticker_set.stickers:
-                            sticker_elegido = random.choice(sticker_set.stickers)
-                            # Se añade 'reply_to_message_id' para citar directamente al usuario
-                            bot.send_sticker(cid, sticker_elegido.file_id, reply_to_message_id=message.message_id)
-                    except Exception as e:
-                        print(f"Error enviando sticker: {e}")
-                
-                contador_actual = 0
-                meta_objetivo = random.randint(s_min, s_max)
-
-            # Guardar todo en MongoDB
             collection.update_one(
                 {"chat_id": cid},
                 {
@@ -378,6 +388,13 @@ def track_messages(message):
                 upsert=True
             )
             verificar_y_limpiar_historial(cid)
+        else:
+            # Si es un comando o multimedia, igual guardamos el progreso exacto del contador de stickers
+            collection.update_one(
+                {"chat_id": cid},
+                {"$set": {"sticker_counter": contador_actual, "sticker_target": meta_objetivo}},
+                upsert=True
+            )
 
 if __name__ == "__main__":
     print("🚀 Iniciando Don Chismoso...")
