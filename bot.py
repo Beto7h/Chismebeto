@@ -96,7 +96,7 @@ MODOS_CONFIG = {
             "agente del caos conspiranoico. Inventa teorías locas. "
             "EMOJIS OBLIGATORIOS: Aleatorios y extraños (🌀, 👽, 👁️‍🗨️, 🎲, 🧪, 🛸)."
         ),
-        "anuncio": "🌀 𝑴𝑶𝑫𝑶 𝑪𝑨𝑶𝑺 🌀"
+        "anuncio": "🌀 𝑴...𝑻𝑶𝑹...𝑶 𝑪𝑨𝑶𝑺 🌀"
     }
 }
 
@@ -224,7 +224,6 @@ def cmd_add_pack(message):
         bot.reply_to(message, f"❌ *Error:* No encontré ese pack de stickers en Telegram. Revisa el nombre.", parse_mode="Markdown")
         return
 
-    # Corrección: Aseguramos explícitamente la creación y anexado seguro de múltiples elementos en un Array nativo
     collection.update_one(
         {"chat_id": cid}, 
         {"$addToSet": {"sticker_packs": pack_name}}, 
@@ -248,24 +247,33 @@ def cmd_del_pack(message):
 @bot.message_handler(commands=['verpacks'])
 def cmd_ver_packs(message):
     cid = message.chat.id
-    # MEJORA: Removida restricción de admin para hacerlo público al 100%
-    doc = collection.find_one({"chat_id": cid})
-    raw_packs = doc.get("sticker_packs", []) if doc else []
-    
-    # MEJORA: Sanitización de datos crudos de MongoDB a listas estructuradas de Python
-    if raw_packs and isinstance(raw_packs, list):
-        packs = [str(p).strip() for p in raw_packs if p]
-    else:
-        packs = []
+    try:
+        doc = collection.find_one({"chat_id": cid})
+        raw_packs = doc.get("sticker_packs", []) if doc else []
         
-    if not packs:
-        bot.reply_to(message, "⚠️ No hay packs de stickers registrados en este grupo. ¡Pídele a un admin que agregue uno con `/addpack`!", parse_mode="Markdown")
-        return
-    
-    msg = f"📂 *Packs de stickers activos en este grupo ({len(packs)}):*\n"
-    for p in packs:
-        msg += f"• `{p}` (https://t.me/addstickers/{p})\n"
-    bot.reply_to(message, msg, parse_mode="Markdown", disable_web_page_preview=True)
+        # Sanitización ultra-segura a prueba de errores de formato en DB
+        packs = []
+        if raw_packs:
+            if isinstance(raw_packs, list):
+                packs = [str(p).strip() for p in raw_packs if p]
+            elif isinstance(raw_packs, dict):
+                packs = [str(v).strip() for v in raw_packs.values() if v]
+            else:
+                packs = [str(raw_packs).strip()]
+
+        if not packs:
+            bot.reply_to(message, "⚠️ No hay packs de stickers registrados en este grupo. ¡Agrega uno con `/addpack`!", parse_mode="Markdown")
+            return
+        
+        msg = f"📂 *Packs de stickers activos en este grupo ({len(packs)}):*\n"
+        for p in packs:
+            msg += f"• `{p}` (https://t.me/addstickers/{p})\n"
+        bot.reply_to(message, msg, parse_mode="Markdown", disable_web_page_preview=True)
+        
+    except Exception as e:
+        # Si algo falla en la lectura, el bot se auto-recupera y te avisa en lugar de morir en silencio
+        print(f"Error en verpacks: {e}")
+        bot.reply_to(message, "⚠️ Hubo un detalle leyendo la base de datos. Intenta agregar tu pack de nuevo usando `/addpack` para limpiar el historial.", parse_mode="Markdown")
 
 @bot.message_handler(commands=['configstickers'])
 def cmd_config_stickers(message):
